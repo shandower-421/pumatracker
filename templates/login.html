@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>TaskMaster — Login</title>
+<title>PumaTracker — Login</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400&display=swap" rel="stylesheet"/>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -41,7 +41,7 @@ body {
   text-transform: uppercase;
   margin-bottom: 8px;
 }
-.logo span { color: var(--accent); }
+.logo span { color: #e07828; }
 .subtitle { font-size: 0.82rem; color: var(--text-dim); margin-bottom: 36px; }
 label { display: block; font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 6px; }
 input[type=text], input[type=password] {
@@ -86,7 +86,7 @@ input:focus { border-color: var(--accent); }
 </head>
 <body>
 <div class="card">
-  <div class="logo">Task<span>Master</span></div>
+  <div class="logo">Puma<span>Tracker</span></div>
   <div class="subtitle">Sign in to your workspace</div>
 
   {% with messages = get_flashed_messages(with_categories=true) %}

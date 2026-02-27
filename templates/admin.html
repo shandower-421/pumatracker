@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>TaskMaster — Admin</title>
+<title>PumaTracker — Admin</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400&display=swap" rel="stylesheet"/>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -17,7 +17,7 @@ body { font-family:'IBM Plex Sans',sans-serif; background:var(--bg); color:var(-
 
 .topbar { display:flex; align-items:center; gap:16px; padding:0 24px; height:56px; border-bottom:1px solid var(--border); background:var(--surface); }
 .logo { font-family:'Syne',sans-serif; font-size:1.1rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; }
-.logo span { color:var(--accent); }
+.logo span { color:#e07828; }
 .topbar-spacer { flex:1; }
 .link-btn { font-size:.82rem; color:var(--text-dim); text-decoration:none; padding:6px 12px; border-radius:5px; border:1px solid var(--border2); transition:all .15s; }
 .link-btn:hover { color:var(--text); border-color:var(--accent); }
@@ -57,8 +57,13 @@ th { font-family:'IBM Plex Mono',monospace; font-size:.68rem; letter-spacing:.08
 td { padding:12px 0; border-bottom:1px solid var(--border); font-size:.88rem; vertical-align:middle; }
 tr:last-child td { border-bottom:none; }
 .badge { display:inline-block; font-size:.7rem; padding:2px 8px; border-radius:4px; font-family:'IBM Plex Mono',monospace; }
-.badge.admin  { background:rgba(91,138,240,.15); color:var(--accent); }
-.badge.normal { background:var(--surface2); color:var(--text-faint); }
+.badge.admin    { background:rgba(91,138,240,.15); color:var(--accent); }
+.badge.normal   { background:var(--surface2); color:var(--text-faint); }
+.badge.disabled { background:rgba(240,91,91,.1); color:var(--p-high); }
+.btn.warning { background:rgba(240,180,50,.12); color:#f0b432; border:1px solid rgba(240,180,50,.3); }
+.btn.warning:hover { background:rgba(240,180,50,.22); }
+tr.disabled-row td { opacity: 0.45; }
+tr.disabled-row td:last-child { opacity: 1; }
 
 .reset-form { display:flex; gap:8px; align-items:center; }
 .reset-form input { flex:1; }
@@ -67,7 +72,7 @@ tr:last-child td { border-bottom:none; }
 <body>
 
 <div class="topbar">
-  <div class="logo">Task<span>Master</span> <span style="font-size:.75rem;font-weight:400;color:var(--text-dim);margin-left:8px;">Admin</span></div>
+  <div class="logo">Puma<span>Tracker</span> <span style="font-size:.75rem;font-weight:400;color:var(--text-dim);margin-left:8px;">Admin</span></div>
   <div class="topbar-spacer"></div>
   <a class="link-btn" href="/">← Back to App</a>
 </div>
@@ -118,13 +123,14 @@ tr:last-child td { border-bottom:none; }
             <th style="width:40px">#</th>
             <th>Username</th>
             <th>Role</th>
+            <th>Status</th>
             <th>Reset Password</th>
             <th style="text-align:right">Actions</th>
           </tr>
         </thead>
         <tbody>
           {% for u in users %}
-          <tr>
+          <tr {% if not u.active %}class="disabled-row"{% endif %}>
             <td style="color:var(--text-faint);font-family:'IBM Plex Mono',monospace;font-size:.8rem;">{{ u.id }}</td>
             <td><strong>{{ u.username }}</strong></td>
             <td>
@@ -135,16 +141,30 @@ tr:last-child td { border-bottom:none; }
               {% endif %}
             </td>
             <td>
+              {% if u.active %}
+                <span class="badge normal">Active</span>
+              {% else %}
+                <span class="badge disabled">Disabled</span>
+              {% endif %}
+            </td>
+            <td>
               <form class="reset-form" method="POST" action="/admin/reset_password/{{ u.id }}">
                 <input type="password" name="new_password" placeholder="New password" autocomplete="new-password"/>
                 <button class="btn sm" type="submit">Reset</button>
               </form>
             </td>
-            <td style="text-align:right">
+            <td style="text-align:right;display:flex;gap:8px;justify-content:flex-end;">
               {% if u.id != session.user_id %}
-              <form method="POST" action="/admin/delete_user/{{ u.id }}" onsubmit="return confirm('Delete user {{ u.username }} and all their tasks?')">
-                <button class="btn sm danger" type="submit">Delete</button>
-              </form>
+                <form method="POST" action="/admin/toggle_user/{{ u.id }}">
+                  {% if u.active %}
+                    <button class="btn sm warning" type="submit">Disable</button>
+                  {% else %}
+                    <button class="btn sm" type="submit">Enable</button>
+                  {% endif %}
+                </form>
+                <form method="POST" action="/admin/delete_user/{{ u.id }}" onsubmit="return confirm('Delete user {{ u.username }} and all their tasks?')">
+                  <button class="btn sm danger" type="submit">Delete</button>
+                </form>
               {% else %}
                 <span style="font-size:.78rem;color:var(--text-faint);">You</span>
               {% endif %}

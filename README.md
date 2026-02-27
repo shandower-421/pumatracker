@@ -1,4 +1,4 @@
-# TaskMaster
+# PumaTracker
 
 A multi-user task manager with GTD support, built with Python and Flask.
 
@@ -11,9 +11,9 @@ If you don't have Python installed, download it from https://python.org.
 In WSL you can run: `sudo apt install python3 python3-pip`
 
 ### 2. Put the files somewhere
-Create a folder, e.g. `~/taskmaster`, and put all these files in it:
+Create a folder, e.g. `~/pumatracker`, and put all these files in it:
 ```
-taskmaster/
+pumatracker/
   app.py
   requirements.txt
   templates/
@@ -36,11 +36,11 @@ python app.py
 You should see:
 ```
 ✅ Created default admin account: username=admin password=admin
-🚀 TaskMaster running at http://localhost:5000
+🚀 PumaTracker running at http://localhost:8080
 ```
 
 ### 5. Open in your browser
-Go to: http://localhost:5000
+Go to: http://localhost:8080
 
 Log in with:
 - Username: `admin`
@@ -55,7 +55,7 @@ Log in with:
 1. Log in as admin
 2. Click **Admin** in the top-right corner
 3. Fill in the username and a temporary password, then click **Create User**
-4. Share the credentials with each person — they can use the app at http://YOUR-IP:5000
+4. Share the credentials with each person — they can use the app at http://YOUR-IP:8080
 
 To find your local IP (so others on your network can connect), run:
 ```
@@ -71,7 +71,7 @@ hostname -I
 - ✅ Send any task to another user's Inbox with the ↗ Send button
 - ✅ Sidebar views and top-bar filters
 - ✅ Admin panel to create/delete users and reset passwords
-- ✅ Data saved in a local SQLite database file (taskmaster.db)
+- ✅ Data saved in a local SQLite database file (pumatracker.db)
 
 ---
 
@@ -79,4 +79,4 @@ hostname -I
 Press `Ctrl+C` in the terminal.
 
 ## Restarting
-Just run `python app.py` again — your data is saved in `taskmaster.db`.
+Just run `python app.py` again — your data is saved in `pumatracker.db`.

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>TaskMaster</title>
+<title>PumaTracker</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -13,16 +13,16 @@
   --text:#e8eaf0; --text-dim:#7a7f8e; --text-faint:#3e4252;
   --accent:#5b8af0; --accent-dim:#1e2d4a;
   --p-high:#f05b5b; --p-med:#f0b45b; --p-low:#5bf0a0;
-  --s-todo:#7a7f8e; --s-prog:#5b8af0; --s-done:#5bf0a0;
-  --g-inbox:#c45bf0; --g-today:#f05b5b; --g-soon:#f0b45b;
-  --g-waiting:#5bb8f0; --g-hold:#7a7f8e;
+  --s-todo:#f05b5b; --s-prog:#5bf0a0; --s-done:#5b8af0;
+  --g-inbox:#e8eaf0; --g-today:#059669; --g-soon:#f0dc32;
+  --g-waiting:#f08c32; --g-hold:#f05b5b;
 }
 body { font-family:'IBM Plex Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; display:flex; flex-direction:column; }
 
 /* TOP BAR */
 .topbar { display:flex; align-items:center; gap:16px; padding:0 24px; height:56px; border-bottom:1px solid var(--border); background:var(--surface); position:sticky; top:0; z-index:100; }
 .logo { font-family:'Syne',sans-serif; font-size:1.1rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; white-space:nowrap; }
-.logo span { color:var(--accent); }
+.logo span { color:#e07828; }
 .topbar-spacer { flex:1; }
 .filter-group { display:flex; gap:8px; align-items:center; }
 .filter-label { font-size:.7rem; color:var(--text-dim); letter-spacing:.08em; text-transform:uppercase; white-space:nowrap; }
@@ -84,22 +84,22 @@ td:first-child { padding-left:24px; }
 .task-name:focus { border-color:var(--accent); background:var(--surface2); }
 
 /* Pill selects */
-.pill-select { border:none; border-radius:5px; font-family:'IBM Plex Sans',sans-serif; font-size:.75rem; font-weight:500; padding:4px 8px; cursor:pointer; outline:none; -webkit-appearance:none; appearance:none; text-align:center; transition:opacity .15s; }
-.pill-select:hover { opacity:.8; }
-.priority-High    { background:rgba(240,91,91,.18);  color:var(--p-high); }
-.priority-Medium  { background:rgba(240,180,91,.18); color:var(--p-med);  }
-.priority-Low     { background:rgba(91,240,160,.18); color:var(--p-low);  }
-.status-To\ Do       { background:rgba(122,127,142,.18); color:var(--s-todo); }
-.status-In\ Progress { background:rgba(91,138,240,.18);  color:var(--s-prog); }
-.status-Done         { background:rgba(91,240,160,.18);  color:var(--s-done); }
-.gtd-Inbox    { background:rgba(196,91,240,.18);  color:var(--g-inbox);   }
-.gtd-Today    { background:rgba(240,91,91,.18);   color:var(--g-today);   }
-.gtd-Soon     { background:rgba(240,180,91,.18);  color:var(--g-soon);    }
-.gtd-Waiting  { background:rgba(91,184,240,.18);  color:var(--g-waiting); }
-.gtd-On\ Hold { background:rgba(122,127,142,.18); color:var(--g-hold);    }
+.pill-select { border:none; border-radius:6px; font-family:'IBM Plex Sans',sans-serif; font-size:.75rem; font-weight:700; padding:5px 10px; cursor:pointer; outline:none; -webkit-appearance:none; appearance:none; text-align:center; transition:filter .15s, transform .1s; letter-spacing:.02em; }
+.pill-select:hover { filter:brightness(1.15); transform:scale(1.04); }
+.priority-High    { background:#d93025; color:#fff; }
+.priority-Medium  { background:#d97706; color:#fff; }
+.priority-Low     { background:#16a34a; color:#fff; }
+.status-Not-Started { background:rgba(232,234,240,.18); color:#e8eaf0; border:1px solid rgba(232,234,240,.35); }
+.status-In-Progress { background:#059669; color:#fff; }
+.status-Completed   { background:#2563eb; color:#fff; }
+.gtd-Inbox    { background:rgba(232,234,240,.18); color:#e8eaf0; border:1px solid rgba(232,234,240,.35); }
+.gtd-Today    { background:#059669; color:#fff; }
+.gtd-Soon     { background:#ca8a04; color:#fff; }
+.gtd-Waiting  { background:#c2410c; color:#fff; }
+.gtd-On-Hold  { background:#dc2626; color:#fff; }
 
 /* Assignee */
-.assignee-input { background:transparent; border:1px solid transparent; border-radius:5px; color:var(--text-dim); font-family:'IBM Plex Sans',sans-serif; font-size:.82rem; padding:4px 8px; outline:none; width:110px; transition:border-color .15s,background .15s; }
+.assignee-input { background:transparent; border:1px solid transparent; border-radius:5px; color:var(--text-dim); font-family:'IBM Plex Sans',sans-serif; font-size:.82rem; padding:4px 8px; outline:none; width:130px; transition:border-color .15s,background .15s; }
 .assignee-input:focus { border-color:var(--accent); background:var(--surface2); color:var(--text); }
 .assignee-input::placeholder { color:var(--text-faint); }
 
@@ -144,7 +144,7 @@ td:first-child { padding-left:24px; }
 
 <!-- TOP BAR -->
 <div class="topbar">
-  <div class="logo">Task<span>Master</span></div>
+  <div class="logo">Puma<span>Tracker</span></div>
   <div class="topbar-spacer"></div>
   <div class="filter-group">
     <span class="filter-label">Filter:</span>
@@ -154,7 +154,7 @@ td:first-child { padding-left:24px; }
     </select>
     <select class="filter-select" id="filterStatus" onchange="loadTasks()">
       <option value="">All Statuses</option>
-      <option>To Do</option><option>In Progress</option><option>Done</option>
+      <option>Not Started</option><option>In Progress</option><option>Completed</option>
     </select>
     <select class="filter-select" id="filterGTD" onchange="loadTasks()">
       <option value="">All GTD</option>
@@ -242,6 +242,13 @@ td:first-child { padding-left:24px; }
   </div>
 </div>
 
+<!-- ASSIGNEE DATALIST (active accounts only) -->
+<datalist id="userList">
+  {% for u in users %}
+    <option value="{{ u.username }}">
+  {% endfor %}
+</datalist>
+
 <!-- SEND TO MODAL -->
 <div class="modal-overlay" id="sendModal">
   <div class="modal">
@@ -323,9 +330,9 @@ function renderTable(tasks) {
       <td><div class="${cbCls}" onclick="toggleDone(${t.id},${t.done?0:1})"></div></td>
       <td><input class="task-name" value="${esc(t.name)}" onblur="patch(${t.id},{name:this.value})" onkeydown="if(event.key==='Enter')this.blur()"/></td>
       <td>${pill('gtd', t.gtd, t.id, ['Inbox','Today','Soon','Waiting','On Hold'])}</td>
-      <td>${pill('status', t.status, t.id, ['To Do','In Progress','Done'])}</td>
+      <td>${pill('status', t.status, t.id, ['Not Started','In Progress','Completed'])}</td>
       <td>${pill('priority', t.priority, t.id, ['High','Medium','Low'])}</td>
-      <td><input class="assignee-input" value="${esc(t.assignee_name||t.assignee||'')}" placeholder="—" onblur="patch(${t.id},{assignee:this.value})"/></td>
+      <td><input class="assignee-input" list="userList" value="${esc(t.assignee_name||t.assignee_text||'')}" placeholder="—" onblur="patch(${t.id},{assignee:this.value})"/></td>
       <td><input class="date-input" type="date" value="${t.due||''}" onchange="patch(${t.id},{due:this.value})"/></td>
       <td><button class="send-btn" onclick="openSendModal(${t.id},'${esc(t.name)}')">↗ Send</button></td>
       <td><button class="del-btn" onclick="deleteTask(${t.id})" title="Delete">✕</button></td>
@@ -333,13 +340,15 @@ function renderTable(tasks) {
   }).join('');
 }
 
+function slug(s) { return s.replace(/ /g, '-'); }
+
 function pill(field, value, id, options) {
   const opts = options.map(o => `<option${o===value?' selected':''}>${o}</option>`).join('');
-  return `<select class="pill-select ${field}-${value}" onchange="patch(${id},{${field}:this.value});applyPill(this,'${field}')">${opts}</select>`;
+  return `<select class="pill-select ${field}-${slug(value)}" onchange="patch(${id},{${field}:this.value});applyPill(this,'${field}')">${opts}</select>`;
 }
 
 function applyPill(el, field) {
-  el.className = `pill-select ${field}-${el.value}`;
+  el.className = `pill-select ${field}-${slug(el.value)}`;
 }
 
 function esc(s) {
@@ -354,7 +363,7 @@ async function patch(id, data) {
 }
 
 async function toggleDone(id, doneVal) {
-  await patch(id, { done: doneVal, status: doneVal ? 'Done' : 'To Do' });
+  await patch(id, { done: doneVal, status: doneVal ? 'Completed' : 'Not Started' });
   loadTasks();
 }
 

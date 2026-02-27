@@ -18,3 +18,7 @@ Thumbs.db
 # IDE files
 .vscode/
 .idea/
+
+# Database
+*.db
+*.db~

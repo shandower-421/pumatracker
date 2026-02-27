@@ -1,5 +1,5 @@
 """
-TaskMaster - Flask Web App
+PumaTracker - Flask Web App
 Run with: python app.py
 Then open http://localhost:5000 in your browser.
 """
@@ -12,7 +12,7 @@ from datetime import datetime
 app = Flask(__name__)
 app.secret_key = 'change-this-to-a-random-string-in-production'
 
-DB = 'taskmaster.db'
+DB = 'pumatracker.db'
 
 # ─────────────────────────────────────────────
 # DATABASE HELPERS
@@ -31,31 +31,52 @@ def init_db():
                 id       INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT UNIQUE NOT NULL,
                 password TEXT NOT NULL,
-                is_admin INTEGER DEFAULT 0
+                is_admin INTEGER DEFAULT 0,
+                active   INTEGER DEFAULT 1
             );
 
             CREATE TABLE IF NOT EXISTS tasks (
-                id          INTEGER PRIMARY KEY AUTOINCREMENT,
-                owner_id    INTEGER NOT NULL,
-                name        TEXT NOT NULL,
-                status      TEXT DEFAULT "To Do",
-                priority    TEXT DEFAULT "Medium",
-                gtd         TEXT DEFAULT "Inbox",
-                assignee_id INTEGER,
-                due         TEXT DEFAULT "",
-                done        INTEGER DEFAULT 0,
-                created_at  TEXT DEFAULT (datetime("now")),
+                id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                owner_id      INTEGER NOT NULL,
+                name          TEXT NOT NULL,
+                status        TEXT DEFAULT "Not Started",
+                priority      TEXT DEFAULT "Medium",
+                gtd           TEXT DEFAULT "Inbox",
+                assignee_id   INTEGER,
+                assignee_text TEXT DEFAULT "",
+                due           TEXT DEFAULT "",
+                done          INTEGER DEFAULT 0,
+                created_at    TEXT DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (owner_id)    REFERENCES users(id),
                 FOREIGN KEY (assignee_id) REFERENCES users(id)
             );
         ''')
+
+        # Migration: add active column if it doesn't exist yet
+        try:
+            db.execute('ALTER TABLE users ADD COLUMN active INTEGER DEFAULT 1')
+            db.execute('UPDATE users SET active = 1 WHERE active IS NULL')
+            db.commit()
+        except sqlite3.OperationalError:
+            pass  # Column already exists
+
+        try:
+            db.execute('ALTER TABLE tasks ADD COLUMN assignee_text TEXT DEFAULT ""')
+            db.commit()
+        except sqlite3.OperationalError:
+            pass  # Column already exists
+
+        # Migration: rename status values to new labels
+        db.execute("UPDATE tasks SET status = 'Not Started' WHERE status = 'To Do'")
+        db.execute("UPDATE tasks SET status = 'Completed'   WHERE status = 'Done'")
+        db.commit()
 
         # Create default admin if no users exist
         row = db.execute('SELECT COUNT(*) as c FROM users').fetchone()
         if row['c'] == 0:
             db.execute(
                 'INSERT INTO users (username, password, is_admin) VALUES (?, ?, 1)',
-                ('admin', generate_password_hash('admin'))
+                ('admin', generate_password_hash('admin', method='pbkdf2:sha256'))
             )
             db.commit()
             print("✅ Created default admin account: username=admin password=admin")
@@ -96,6 +117,9 @@ def login():
         with get_db() as db:
             user = db.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
         if user and check_password_hash(user['password'], password):
+            if not user['active']:
+                flash('This account has been disabled. Please contact an admin.', 'error')
+                return render_template('login.html')
             session['user_id']  = user['id']
             session['username'] = user['username']
             session['is_admin'] = bool(user['is_admin'])
@@ -116,7 +140,7 @@ def logout():
 @login_required
 def index():
     with get_db() as db:
-        users = db.execute('SELECT id, username FROM users ORDER BY username').fetchall()
+        users = db.execute('SELECT id, username FROM users WHERE active = 1 ORDER BY username').fetchall()
     return render_template('index.html', users=users)
 
 # ─────────────────────────────────────────────
@@ -193,10 +217,25 @@ def update_task(task_id):
             sets.append(f'{f} = ?')
             params.append(data[f])
 
+    # Handle free-text assignee: link to account if username matches an active user,
+    # otherwise store as plain text and clear any linked account.
+    if 'assignee' in data:
+        val = (data['assignee'] or '').strip()
+        with get_db() as db_lookup:
+            match = db_lookup.execute(
+                'SELECT id FROM users WHERE username = ? AND active = 1', (val,)
+            ).fetchone() if val else None
+        if match:
+            sets += ['assignee_id = ?', 'assignee_text = ?']
+            params += [match['id'], '']
+        else:
+            sets += ['assignee_id = ?', 'assignee_text = ?']
+            params += [None, val]
+
     # Auto-sync done flag with status
     if 'status' in data:
         sets.append('done = ?')
-        params.append(1 if data['status'] == 'Done' else 0)
+        params.append(1 if data['status'] == 'Completed' else 0)
 
     if not sets:
         return jsonify({'error': 'Nothing to update'}), 400
@@ -286,7 +325,7 @@ def get_counts():
 @admin_required
 def admin():
     with get_db() as db:
-        users = db.execute('SELECT id, username, is_admin FROM users ORDER BY username').fetchall()
+        users = db.execute('SELECT id, username, is_admin, active FROM users ORDER BY username').fetchall()
     return render_template('admin.html', users=users)
 
 @app.route('/admin/create_user', methods=['POST'])
@@ -303,7 +342,7 @@ def create_user():
         with get_db() as db:
             db.execute(
                 'INSERT INTO users (username, password, is_admin) VALUES (?, ?, ?)',
-                (username, generate_password_hash(password), is_admin)
+                (username, generate_password_hash(password, method='pbkdf2:sha256'), is_admin)
             )
             db.commit()
         flash(f'User "{username}" created successfully.', 'success')
@@ -325,6 +364,33 @@ def delete_user(user_id):
     flash('User deleted.', 'success')
     return redirect(url_for('admin'))
 
+@app.route('/admin/toggle_user/<int:user_id>', methods=['POST'])
+@login_required
+@admin_required
+def toggle_user(user_id):
+    if user_id == session['user_id']:
+        flash("You can't disable your own account.", 'error')
+        return redirect(url_for('admin'))
+    with get_db() as db:
+        user = db.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
+        if not user:
+            flash('User not found.', 'error')
+            return redirect(url_for('admin'))
+        # Safety: don't allow disabling the last active admin
+        if user['is_admin'] and user['active']:
+            active_admins = db.execute(
+                'SELECT COUNT(*) as c FROM users WHERE is_admin = 1 AND active = 1'
+            ).fetchone()
+            if active_admins['c'] <= 1:
+                flash("Can't disable the last active admin account.", 'error')
+                return redirect(url_for('admin'))
+        new_status = 0 if user['active'] else 1
+        db.execute('UPDATE users SET active = ? WHERE id = ?', (new_status, user_id))
+        db.commit()
+    action = 'disabled' if new_status == 0 else 're-enabled'
+    flash(f'User "{user["username"]}" has been {action}.', 'success')
+    return redirect(url_for('admin'))
+
 @app.route('/admin/reset_password/<int:user_id>', methods=['POST'])
 @login_required
 @admin_required
@@ -335,7 +401,7 @@ def reset_password(user_id):
         return redirect(url_for('admin'))
     with get_db() as db:
         db.execute('UPDATE users SET password = ? WHERE id = ?',
-                   (generate_password_hash(new_pw), user_id))
+                   (generate_password_hash(new_pw, method='pbkdf2:sha256'), user_id))
         db.commit()
     flash('Password updated.', 'success')
     return redirect(url_for('admin'))
@@ -346,5 +412,5 @@ def reset_password(user_id):
 
 if __name__ == '__main__':
     init_db()
-    print("🚀 TaskMaster running at http://localhost:5000")
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    print("🚀 PumaTracker running at http://localhost:8080")
+    app.run(debug=True, host='0.0.0.0', port=8080)
