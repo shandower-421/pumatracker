@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TaskMaster</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:#0e0f11; --surface:#16181c; --surface2:#1e2128;
+  --border:#2a2d35; --border2:#363a45;
+  --text:#e8eaf0; --text-dim:#7a7f8e; --text-faint:#3e4252;
+  --accent:#5b8af0; --accent-dim:#1e2d4a;
+  --p-high:#f05b5b; --p-med:#f0b45b; --p-low:#5bf0a0;
+  --s-todo:#7a7f8e; --s-prog:#5b8af0; --s-done:#5bf0a0;
+  --g-inbox:#c45bf0; --g-today:#f05b5b; --g-soon:#f0b45b;
+  --g-waiting:#5bb8f0; --g-hold:#7a7f8e;
+}
+body { font-family:'IBM Plex Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; display:flex; flex-direction:column; }
+
+/* TOP BAR */
+.topbar { display:flex; align-items:center; gap:16px; padding:0 24px; height:56px; border-bottom:1px solid var(--border); background:var(--surface); position:sticky; top:0; z-index:100; }
+.logo { font-family:'Syne',sans-serif; font-size:1.1rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; white-space:nowrap; }
+.logo span { color:var(--accent); }
+.topbar-spacer { flex:1; }
+.filter-group { display:flex; gap:8px; align-items:center; }
+.filter-label { font-size:.7rem; color:var(--text-dim); letter-spacing:.08em; text-transform:uppercase; white-space:nowrap; }
+select.filter-select { background:var(--surface2); border:1px solid var(--border2); color:var(--text); font-family:'IBM Plex Sans',sans-serif; font-size:.8rem; padding:5px 10px; border-radius:5px; outline:none; cursor:pointer; transition:border-color .15s; }
+select.filter-select:hover, select.filter-select:focus { border-color:var(--accent); }
+.topbar-user { display:flex; align-items:center; gap:10px; padding-left:16px; border-left:1px solid var(--border); }
+.topbar-user span { font-size:.82rem; color:var(--text-dim); }
+.topbar-user strong { color:var(--text); }
+.link-btn { font-size:.8rem; color:var(--text-faint); text-decoration:none; padding:4px 8px; border-radius:4px; transition:color .15s, background .15s; }
+.link-btn:hover { color:var(--text); background:var(--surface2); }
+
+/* LAYOUT */
+.main { display:flex; flex:1; overflow:hidden; }
+
+/* SIDEBAR */
+.sidebar { width:210px; flex-shrink:0; background:var(--surface); border-right:1px solid var(--border); padding:20px 0; display:flex; flex-direction:column; gap:2px; overflow-y:auto; }
+.sidebar-label { font-size:.65rem; letter-spacing:.12em; text-transform:uppercase; color:var(--text-faint); padding:10px 20px 4px; font-family:'IBM Plex Mono',monospace; }
+.sidebar-item { display:flex; align-items:center; gap:10px; padding:8px 20px; font-size:.87rem; color:var(--text-dim); cursor:pointer; border-left:2px solid transparent; transition:all .12s; user-select:none; }
+.sidebar-item:hover { background:var(--surface2); color:var(--text); }
+.sidebar-item.active { color:var(--text); border-left-color:var(--accent); background:var(--accent-dim); }
+.sidebar-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.sidebar-count { margin-left:auto; font-family:'IBM Plex Mono',monospace; font-size:.72rem; color:var(--text-faint); background:var(--surface2); padding:1px 6px; border-radius:10px; }
+
+/* CONTENT */
+.content { flex:1; overflow-y:auto; display:flex; flex-direction:column; }
+
+/* ADD BAR */
+.add-bar { display:flex; gap:10px; align-items:center; padding:14px 24px; border-bottom:1px solid var(--border); background:var(--surface); }
+.add-input { flex:1; background:var(--surface2); border:1px solid var(--border2); color:var(--text); font-family:'IBM Plex Sans',sans-serif; font-size:.92rem; padding:9px 14px; border-radius:6px; outline:none; transition:border-color .15s; }
+.add-input:focus { border-color:var(--accent); }
+.add-input::placeholder { color:var(--text-faint); }
+.add-btn { background:var(--accent); color:#fff; border:none; border-radius:6px; padding:9px 18px; font-family:'IBM Plex Sans',sans-serif; font-size:.88rem; font-weight:500; cursor:pointer; transition:opacity .15s,transform .1s; white-space:nowrap; }
+.add-btn:hover { opacity:.85; }
+.add-btn:active { transform:scale(.97); }
+
+/* TABLE */
+.table-wrap { flex:1; overflow-x:auto; }
+table { width:100%; border-collapse:collapse; min-width:900px; }
+thead tr { border-bottom:1px solid var(--border); background:var(--bg); position:sticky; top:0; z-index:10; }
+th { font-family:'IBM Plex Mono',monospace; font-size:.67rem; letter-spacing:.1em; text-transform:uppercase; color:var(--text-faint); padding:10px 12px; text-align:left; font-weight:500; white-space:nowrap; }
+th:first-child { padding-left:24px; }
+th.col-task { width:100%; }
+tbody tr { border-bottom:1px solid var(--border); transition:background .1s; animation:rowIn .2s ease; }
+@keyframes rowIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:translateY(0); } }
+tbody tr:hover { background:var(--surface2); }
+tbody tr.done-row td { opacity:.4; }
+tbody tr.done-row .task-name { text-decoration:line-through; }
+td { padding:10px 12px; font-size:.87rem; vertical-align:middle; }
+td:first-child { padding-left:24px; }
+
+/* Checkbox */
+.cb { width:17px; height:17px; border:2px solid var(--border2); border-radius:4px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .15s; flex-shrink:0; }
+.cb:hover { border-color:var(--accent); }
+.cb.checked { background:var(--s-done); border-color:var(--s-done); }
+.cb.checked::after { content:'✓'; color:#0e0f11; font-size:11px; font-weight:bold; }
+
+/* Editable task name */
+.task-name { font-size:.9rem; color:var(--text); cursor:text; padding:4px 6px; border-radius:4px; border:1px solid transparent; outline:none; background:transparent; font-family:'IBM Plex Sans',sans-serif; width:100%; transition:border-color .15s, background .15s; }
+.task-name:focus { border-color:var(--accent); background:var(--surface2); }
+
+/* Pill selects */
+.pill-select { border:none; border-radius:5px; font-family:'IBM Plex Sans',sans-serif; font-size:.75rem; font-weight:500; padding:4px 8px; cursor:pointer; outline:none; -webkit-appearance:none; appearance:none; text-align:center; transition:opacity .15s; }
+.pill-select:hover { opacity:.8; }
+.priority-High    { background:rgba(240,91,91,.18);  color:var(--p-high); }
+.priority-Medium  { background:rgba(240,180,91,.18); color:var(--p-med);  }
+.priority-Low     { background:rgba(91,240,160,.18); color:var(--p-low);  }
+.status-To\ Do       { background:rgba(122,127,142,.18); color:var(--s-todo); }
+.status-In\ Progress { background:rgba(91,138,240,.18);  color:var(--s-prog); }
+.status-Done         { background:rgba(91,240,160,.18);  color:var(--s-done); }
+.gtd-Inbox    { background:rgba(196,91,240,.18);  color:var(--g-inbox);   }
+.gtd-Today    { background:rgba(240,91,91,.18);   color:var(--g-today);   }
+.gtd-Soon     { background:rgba(240,180,91,.18);  color:var(--g-soon);    }
+.gtd-Waiting  { background:rgba(91,184,240,.18);  color:var(--g-waiting); }
+.gtd-On\ Hold { background:rgba(122,127,142,.18); color:var(--g-hold);    }
+
+/* Assignee */
+.assignee-input { background:transparent; border:1px solid transparent; border-radius:5px; color:var(--text-dim); font-family:'IBM Plex Sans',sans-serif; font-size:.82rem; padding:4px 8px; outline:none; width:110px; transition:border-color .15s,background .15s; }
+.assignee-input:focus { border-color:var(--accent); background:var(--surface2); color:var(--text); }
+.assignee-input::placeholder { color:var(--text-faint); }
+
+/* Date */
+.date-input { background:transparent; border:1px solid transparent; border-radius:5px; color:var(--text-dim); font-family:'IBM Plex Mono',monospace; font-size:.77rem; padding:4px 8px; outline:none; cursor:pointer; transition:border-color .15s,background .15s; color-scheme:dark; }
+.date-input:hover, .date-input:focus { border-color:var(--border2); background:var(--surface2); color:var(--text); }
+
+/* Send button */
+.send-btn { background:none; border:1px solid var(--border2); color:var(--text-dim); font-size:.72rem; font-family:'IBM Plex Sans',sans-serif; padding:4px 8px; border-radius:4px; cursor:pointer; white-space:nowrap; transition:all .15s; }
+.send-btn:hover { border-color:var(--accent); color:var(--accent); }
+
+/* Delete */
+.del-btn { background:none; border:none; color:var(--text-faint); font-size:1rem; cursor:pointer; padding:4px 6px; border-radius:4px; transition:color .15s,background .15s; line-height:1; }
+.del-btn:hover { color:var(--p-high); background:rgba(240,91,91,.1); }
+
+/* Empty */
+.empty-row td { text-align:center; padding:60px 0; color:var(--text-faint); font-size:.88rem; }
+
+/* Toast */
+.toast { position:fixed; bottom:28px; right:28px; background:var(--surface2); border:1px solid var(--border2); border-radius:8px; padding:12px 20px; font-size:.85rem; color:var(--text); box-shadow:0 8px 32px rgba(0,0,0,.4); z-index:9999; transform:translateY(10px); opacity:0; transition:all .3s; pointer-events:none; }
+.toast.show { transform:translateY(0); opacity:1; }
+
+/* Send modal */
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:200; display:none; align-items:center; justify-content:center; }
+.modal-overlay.open { display:flex; }
+.modal { background:var(--surface); border:1px solid var(--border2); border-radius:10px; padding:32px; width:340px; box-shadow:0 24px 64px rgba(0,0,0,.5); }
+.modal h2 { font-family:'Syne',sans-serif; font-size:1.1rem; margin-bottom:8px; }
+.modal p { font-size:.83rem; color:var(--text-dim); margin-bottom:20px; }
+.modal select { width:100%; background:var(--surface2); border:1px solid var(--border2); color:var(--text); font-family:'IBM Plex Sans',sans-serif; font-size:.9rem; padding:9px 12px; border-radius:6px; outline:none; margin-bottom:16px; }
+.modal-btns { display:flex; gap:10px; justify-content:flex-end; }
+.modal-btn { padding:8px 18px; border-radius:6px; font-family:'IBM Plex Sans',sans-serif; font-size:.88rem; cursor:pointer; border:none; }
+.modal-btn.cancel { background:var(--surface2); color:var(--text-dim); }
+.modal-btn.confirm { background:var(--accent); color:#fff; }
+.modal-btn:hover { opacity:.85; }
+
+::-webkit-scrollbar { width:6px; height:6px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="logo">Task<span>Master</span></div>
+  <div class="topbar-spacer"></div>
+  <div class="filter-group">
+    <span class="filter-label">Filter:</span>
+    <select class="filter-select" id="filterPriority" onchange="loadTasks()">
+      <option value="">All Priorities</option>
+      <option>High</option><option>Medium</option><option>Low</option>
+    </select>
+    <select class="filter-select" id="filterStatus" onchange="loadTasks()">
+      <option value="">All Statuses</option>
+      <option>To Do</option><option>In Progress</option><option>Done</option>
+    </select>
+    <select class="filter-select" id="filterGTD" onchange="loadTasks()">
+      <option value="">All GTD</option>
+      <option>Inbox</option><option>Today</option><option>Soon</option><option>Waiting</option><option>On Hold</option>
+    </select>
+  </div>
+  <div class="topbar-user">
+    <span>Signed in as <strong>{{ session.username }}</strong></span>
+    {% if session.is_admin %}
+      <a class="link-btn" href="/admin">Admin</a>
+    {% endif %}
+    <a class="link-btn" href="/logout">Sign out</a>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-label">Views</div>
+    <div class="sidebar-item active" onclick="setView('all',this)">
+      <div class="sidebar-dot" style="background:#5b8af0"></div>All Tasks
+      <span class="sidebar-count" id="cnt-all">—</span>
+    </div>
+    <div class="sidebar-item" onclick="setView('inbox',this)">
+      <div class="sidebar-dot" style="background:var(--g-inbox)"></div>Inbox
+      <span class="sidebar-count" id="cnt-inbox">—</span>
+    </div>
+    <div class="sidebar-item" onclick="setView('today',this)">
+      <div class="sidebar-dot" style="background:var(--g-today)"></div>Today
+      <span class="sidebar-count" id="cnt-today">—</span>
+    </div>
+    <div class="sidebar-item" onclick="setView('soon',this)">
+      <div class="sidebar-dot" style="background:var(--g-soon)"></div>Soon
+      <span class="sidebar-count" id="cnt-soon">—</span>
+    </div>
+    <div class="sidebar-item" onclick="setView('waiting',this)">
+      <div class="sidebar-dot" style="background:var(--g-waiting)"></div>Waiting
+      <span class="sidebar-count" id="cnt-waiting">—</span>
+    </div>
+    <div class="sidebar-item" onclick="setView('hold',this)">
+      <div class="sidebar-dot" style="background:var(--g-hold)"></div>On Hold
+      <span class="sidebar-count" id="cnt-hold">—</span>
+    </div>
+
+    <div class="sidebar-label" style="margin-top:8px">Priority</div>
+    <div class="sidebar-item" onclick="setView('high',this)">
+      <div class="sidebar-dot" style="background:var(--p-high)"></div>High
+      <span class="sidebar-count" id="cnt-high">—</span>
+    </div>
+    <div class="sidebar-item" onclick="setView('medium',this)">
+      <div class="sidebar-dot" style="background:var(--p-med)"></div>Medium
+      <span class="sidebar-count" id="cnt-medium">—</span>
+    </div>
+    <div class="sidebar-item" onclick="setView('low',this)">
+      <div class="sidebar-dot" style="background:var(--p-low)"></div>Low
+      <span class="sidebar-count" id="cnt-low">—</span>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+    <div class="add-bar">
+      <input class="add-input" id="newTask" placeholder="+ Type a task and press Enter…"/>
+      <button class="add-btn" onclick="addTask()">Add Task</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th class="col-task">Task</th>
+            <th>GTD</th>
+            <th>Status</th>
+            <th>Priority</th>
+            <th>Assignee</th>
+            <th>Due Date</th>
+            <th>Send To</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="taskBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- SEND TO MODAL -->
+<div class="modal-overlay" id="sendModal">
+  <div class="modal">
+    <h2>Send Task to User</h2>
+    <p id="sendModalDesc">This will copy the task into the selected user's Inbox.</p>
+    <select id="sendUserSelect">
+      {% for u in users %}
+        <option value="{{ u.id }}">{{ u.username }}</option>
+      {% endfor %}
+    </select>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="closeModal()">Cancel</button>
+      <button class="modal-btn confirm" onclick="confirmSend()">Send</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+let currentView = 'all';
+let sendTaskId = null;
+
+// ── TOAST ──
+function toast(msg, duration=2500) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), duration);
+}
+
+// ── SIDEBAR ──
+function setView(view, el) {
+  currentView = view;
+  document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+  loadTasks();
+}
+
+// ── LOAD TASKS ──
+async function loadTasks() {
+  const fp = document.getElementById('filterPriority').value;
+  const fs = document.getElementById('filterStatus').value;
+  const fg = document.getElementById('filterGTD').value;
+  const params = new URLSearchParams({ view: currentView });
+  if (fp) params.set('priority', fp);
+  if (fs) params.set('status', fs);
+  if (fg) params.set('gtd', fg);
+
+  const res   = await fetch('/api/tasks?' + params);
+  const tasks = await res.json();
+  renderTable(tasks);
+  loadCounts();
+}
+
+// ── LOAD COUNTS ──
+async function loadCounts() {
+  const res  = await fetch('/api/counts');
+  const data = await res.json();
+  const map  = { all:'all_tasks', today:'today', inbox:'inbox', soon:'soon', waiting:'waiting', hold:'hold', high:'high', medium:'medium', low:'low' };
+  for (const [k,v] of Object.entries(map)) {
+    const el = document.getElementById('cnt-' + k);
+    if (el) el.textContent = data[v] ?? 0;
+  }
+}
+
+// ── RENDER TABLE ──
+function renderTable(tasks) {
+  const body = document.getElementById('taskBody');
+  if (!tasks.length) {
+    body.innerHTML = '<tr class="empty-row"><td colspan="9">No tasks here — add one above!</td></tr>';
+    return;
+  }
+  body.innerHTML = tasks.map(t => {
+    const done = t.done ? 'done-row' : '';
+    const cbCls = t.done ? 'cb checked' : 'cb';
+    return `<tr class="${done}" data-id="${t.id}">
+      <td><div class="${cbCls}" onclick="toggleDone(${t.id},${t.done?0:1})"></div></td>
+      <td><input class="task-name" value="${esc(t.name)}" onblur="patch(${t.id},{name:this.value})" onkeydown="if(event.key==='Enter')this.blur()"/></td>
+      <td>${pill('gtd', t.gtd, t.id, ['Inbox','Today','Soon','Waiting','On Hold'])}</td>
+      <td>${pill('status', t.status, t.id, ['To Do','In Progress','Done'])}</td>
+      <td>${pill('priority', t.priority, t.id, ['High','Medium','Low'])}</td>
+      <td><input class="assignee-input" value="${esc(t.assignee_name||t.assignee||'')}" placeholder="—" onblur="patch(${t.id},{assignee:this.value})"/></td>
+      <td><input class="date-input" type="date" value="${t.due||''}" onchange="patch(${t.id},{due:this.value})"/></td>
+      <td><button class="send-btn" onclick="openSendModal(${t.id},'${esc(t.name)}')">↗ Send</button></td>
+      <td><button class="del-btn" onclick="deleteTask(${t.id})" title="Delete">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function pill(field, value, id, options) {
+  const opts = options.map(o => `<option${o===value?' selected':''}>${o}</option>`).join('');
+  return `<select class="pill-select ${field}-${value}" onchange="patch(${id},{${field}:this.value});applyPill(this,'${field}')">${opts}</select>`;
+}
+
+function applyPill(el, field) {
+  el.className = `pill-select ${field}-${el.value}`;
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── API CALLS ──
+async function patch(id, data) {
+  await fetch(`/api/tasks/${id}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+  loadCounts();
+  if ('status' in data || 'gtd' in data) loadTasks();
+}
+
+async function toggleDone(id, doneVal) {
+  await patch(id, { done: doneVal, status: doneVal ? 'Done' : 'To Do' });
+  loadTasks();
+}
+
+async function addTask() {
+  const input = document.getElementById('newTask');
+  const name  = input.value.trim();
+  if (!name) return;
+  input.value = '';
+  await fetch('/api/tasks', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name}) });
+  loadTasks();
+}
+
+async function deleteTask(id) {
+  await fetch(`/api/tasks/${id}`, { method:'DELETE' });
+  loadTasks();
+}
+
+// ── SEND MODAL ──
+function openSendModal(id, name) {
+  sendTaskId = id;
+  document.getElementById('sendModalDesc').textContent = `Send "${name}" to another user's Inbox.`;
+  document.getElementById('sendModal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('sendModal').classList.remove('open');
+  sendTaskId = null;
+}
+
+async function confirmSend() {
+  const userId = document.getElementById('sendUserSelect').value;
+  const res    = await fetch(`/api/tasks/${sendTaskId}/assign`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ user_id: parseInt(userId) })
+  });
+  const data = await res.json();
+  closeModal();
+  if (data.ok) toast(`✅ Task sent to ${data.sent_to}'s Inbox!`);
+  else toast('❌ Something went wrong.');
+}
+
+// Enter to add
+document.getElementById('newTask').addEventListener('keydown', e => { if(e.key==='Enter') addTask(); });
+// Close modal on overlay click
+document.getElementById('sendModal').addEventListener('click', e => { if(e.target===e.currentTarget) closeModal(); });
+
+// Init
+loadTasks();
+</script>
+</body>
+</html>

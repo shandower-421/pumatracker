@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TaskMaster — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400&display=swap" rel="stylesheet"/>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:#0e0f11; --surface:#16181c; --surface2:#1e2128;
+  --border:#2a2d35; --border2:#363a45;
+  --text:#e8eaf0; --text-dim:#7a7f8e; --text-faint:#3e4252;
+  --accent:#5b8af0; --p-high:#f05b5b; --s-done:#5bf0a0;
+}
+body { font-family:'IBM Plex Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+.topbar { display:flex; align-items:center; gap:16px; padding:0 24px; height:56px; border-bottom:1px solid var(--border); background:var(--surface); }
+.logo { font-family:'Syne',sans-serif; font-size:1.1rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; }
+.logo span { color:var(--accent); }
+.topbar-spacer { flex:1; }
+.link-btn { font-size:.82rem; color:var(--text-dim); text-decoration:none; padding:6px 12px; border-radius:5px; border:1px solid var(--border2); transition:all .15s; }
+.link-btn:hover { color:var(--text); border-color:var(--accent); }
+
+.page { max-width:780px; margin:48px auto; padding:0 24px; }
+h1 { font-family:'Syne',sans-serif; font-size:1.5rem; margin-bottom:6px; }
+.subtitle { font-size:.85rem; color:var(--text-dim); margin-bottom:36px; }
+
+/* Flash messages */
+.flash { padding:10px 16px; border-radius:6px; margin-bottom:20px; font-size:.87rem; }
+.flash.success { background:rgba(91,240,160,.1); border:1px solid rgba(91,240,160,.3); color:var(--s-done); }
+.flash.error   { background:rgba(240,91,91,.1);  border:1px solid rgba(240,91,91,.3);  color:var(--p-high); }
+
+/* Cards */
+.card { background:var(--surface); border:1px solid var(--border); border-radius:10px; margin-bottom:28px; overflow:hidden; }
+.card-header { padding:18px 24px; border-bottom:1px solid var(--border); font-weight:500; font-size:.95rem; }
+.card-body { padding:24px; }
+
+/* Create user form */
+.form-row { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; }
+.form-field { display:flex; flex-direction:column; gap:6px; flex:1; min-width:140px; }
+label { font-size:.72rem; letter-spacing:.08em; text-transform:uppercase; color:var(--text-dim); }
+input[type=text], input[type=password] { background:var(--surface2); border:1px solid var(--border2); color:var(--text); font-family:'IBM Plex Sans',sans-serif; font-size:.9rem; padding:9px 12px; border-radius:6px; outline:none; transition:border-color .15s; }
+input:focus { border-color:var(--accent); }
+.checkbox-row { display:flex; align-items:center; gap:8px; padding-bottom:2px; }
+.checkbox-row input { width:16px; height:16px; cursor:pointer; accent-color:var(--accent); }
+.checkbox-row label { text-transform:none; letter-spacing:0; font-size:.87rem; color:var(--text-dim); margin:0; cursor:pointer; }
+.btn { background:var(--accent); color:#fff; border:none; border-radius:6px; padding:10px 20px; font-family:'IBM Plex Sans',sans-serif; font-size:.88rem; font-weight:500; cursor:pointer; white-space:nowrap; transition:opacity .15s; }
+.btn:hover { opacity:.85; }
+.btn.danger { background:rgba(240,91,91,.15); color:var(--p-high); border:1px solid rgba(240,91,91,.3); }
+.btn.danger:hover { background:rgba(240,91,91,.25); }
+.btn.sm { padding:6px 12px; font-size:.8rem; }
+
+/* Users table */
+table { width:100%; border-collapse:collapse; }
+th { font-family:'IBM Plex Mono',monospace; font-size:.68rem; letter-spacing:.08em; text-transform:uppercase; color:var(--text-faint); padding:10px 0; text-align:left; border-bottom:1px solid var(--border); }
+td { padding:12px 0; border-bottom:1px solid var(--border); font-size:.88rem; vertical-align:middle; }
+tr:last-child td { border-bottom:none; }
+.badge { display:inline-block; font-size:.7rem; padding:2px 8px; border-radius:4px; font-family:'IBM Plex Mono',monospace; }
+.badge.admin  { background:rgba(91,138,240,.15); color:var(--accent); }
+.badge.normal { background:var(--surface2); color:var(--text-faint); }
+
+.reset-form { display:flex; gap:8px; align-items:center; }
+.reset-form input { flex:1; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">Task<span>Master</span> <span style="font-size:.75rem;font-weight:400;color:var(--text-dim);margin-left:8px;">Admin</span></div>
+  <div class="topbar-spacer"></div>
+  <a class="link-btn" href="/">← Back to App</a>
+</div>
+
+<div class="page">
+  <h1>User Management</h1>
+  <div class="subtitle">Create accounts, reset passwords, and manage users.</div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="flash {{ category }}">{{ message }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <!-- CREATE USER -->
+  <div class="card">
+    <div class="card-header">Create New User</div>
+    <div class="card-body">
+      <form method="POST" action="/admin/create_user">
+        <div class="form-row">
+          <div class="form-field">
+            <label>Username</label>
+            <input type="text" name="username" placeholder="e.g. jsmith" required autocomplete="off"/>
+          </div>
+          <div class="form-field">
+            <label>Password</label>
+            <input type="password" name="password" placeholder="Temporary password" required autocomplete="new-password"/>
+          </div>
+          <div class="form-field" style="justify-content:flex-end;">
+            <div class="checkbox-row">
+              <input type="checkbox" name="is_admin" id="is_admin"/>
+              <label for="is_admin">Admin privileges</label>
+            </div>
+            <button class="btn" type="submit">Create User</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- USER LIST -->
+  <div class="card">
+    <div class="card-header">All Users ({{ users|length }})</div>
+    <div class="card-body">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:40px">#</th>
+            <th>Username</th>
+            <th>Role</th>
+            <th>Reset Password</th>
+            <th style="text-align:right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in users %}
+          <tr>
+            <td style="color:var(--text-faint);font-family:'IBM Plex Mono',monospace;font-size:.8rem;">{{ u.id }}</td>
+            <td><strong>{{ u.username }}</strong></td>
+            <td>
+              {% if u.is_admin %}
+                <span class="badge admin">Admin</span>
+              {% else %}
+                <span class="badge normal">User</span>
+              {% endif %}
+            </td>
+            <td>
+              <form class="reset-form" method="POST" action="/admin/reset_password/{{ u.id }}">
+                <input type="password" name="new_password" placeholder="New password" autocomplete="new-password"/>
+                <button class="btn sm" type="submit">Reset</button>
+              </form>
+            </td>
+            <td style="text-align:right">
+              {% if u.id != session.user_id %}
+              <form method="POST" action="/admin/delete_user/{{ u.id }}" onsubmit="return confirm('Delete user {{ u.username }} and all their tasks?')">
+                <button class="btn sm danger" type="submit">Delete</button>
+              </form>
+              {% else %}
+                <span style="font-size:.78rem;color:var(--text-faint);">You</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
