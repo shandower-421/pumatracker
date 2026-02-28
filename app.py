@@ -354,12 +354,12 @@ def get_counts():
     return jsonify(dict(rows))
 
 # ─────────────────────────────────────────────
-# GROUP API
+# PROJECT API
 # ─────────────────────────────────────────────
 
-@app.route('/api/groups')
+@app.route('/api/projects')
 @login_required
-def get_groups():
+def get_projects():
     uid = session['user_id']
     with get_db() as db:
         rows = db.execute(
@@ -373,9 +373,9 @@ def get_groups():
         ).fetchall()
     return jsonify([dict(r) for r in rows])
 
-@app.route('/api/groups', methods=['POST'])
+@app.route('/api/projects', methods=['POST'])
 @login_required
-def create_group():
+def create_project():
     uid  = session['user_id']
     name = (request.json.get('name') or '').strip()
     if not name:
@@ -394,9 +394,9 @@ def create_group():
         ).fetchone()
     return jsonify(dict(group)), 201
 
-@app.route('/api/groups/<int:group_id>', methods=['PATCH'])
+@app.route('/api/projects/<int:group_id>', methods=['PATCH'])
 @login_required
-def update_group(group_id):
+def update_project(group_id):
     uid  = session['user_id']
     data = request.json
     sets, params = [], []
@@ -417,9 +417,9 @@ def update_group(group_id):
         return jsonify({'error': 'Not found'}), 404
     return jsonify(dict(group))
 
-@app.route('/api/groups/<int:group_id>', methods=['DELETE'])
+@app.route('/api/projects/<int:group_id>', methods=['DELETE'])
 @login_required
-def delete_group(group_id):
+def delete_project(group_id):
     uid = session['user_id']
     with get_db() as db:
         group = db.execute(
