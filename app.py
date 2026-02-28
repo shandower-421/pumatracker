@@ -1,12 +1,14 @@
 """
 PumaTracker - Flask Web App
 Run with: python app.py
-Then open http://localhost:5000 in your browser.
+         python app.py --port 9000
+         (or set "port" in config.json)
+Then open http://localhost:8080 in your browser (or whichever port you chose).
 """
 
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
 from werkzeug.security import generate_password_hash, check_password_hash
-import sqlite3, os, functools
+import sqlite3, os, functools, argparse, json
 from datetime import datetime
 
 app = Flask(__name__)
@@ -576,6 +578,21 @@ def reset_password(user_id):
 # ─────────────────────────────────────────────
 
 if __name__ == '__main__':
+    # ── Port resolution: CLI arg → config.json → default 8080 ──
+    parser = argparse.ArgumentParser(description='PumaTracker')
+    parser.add_argument('--port', type=int, default=None, help='Port to listen on (default: 8080)')
+    args = parser.parse_args()
+
+    port = args.port
+    if port is None:
+        config_path = os.path.join(os.path.dirname(__file__), 'config.json')
+        if os.path.exists(config_path):
+            with open(config_path) as f:
+                cfg = json.load(f)
+            port = cfg.get('port', 8080)
+        else:
+            port = 8080
+
     init_db()
-    print("🚀 PumaTracker running at http://localhost:8080")
-    app.run(debug=True, host='0.0.0.0', port=8080)
+    print(f"🚀 PumaTracker running at http://localhost:{port}")
+    app.run(debug=True, host='0.0.0.0', port=port)
