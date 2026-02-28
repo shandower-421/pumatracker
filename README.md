@@ -42,6 +42,29 @@ You should see:
 ### 5. Open in your browser
 Go to: http://localhost:8080
 
+---
+
+## Changing the port
+
+By default PumaTracker runs on port **8080**. There are two ways to use a different port:
+
+**Option A — command-line flag** (one-time change):
+```
+python app.py --port 9000
+```
+
+**Option B — config file** (permanent change):
+Edit `config.json` in the project folder and set the port number:
+```json
+{
+  "port": 9000
+}
+```
+
+Then start normally with `python app.py` and it will use the port from the file.
+
+Priority order: `--port` flag → `config.json` → default 8080.
+
 Log in with:
 - Username: `admin`
 - Password: `admin`
