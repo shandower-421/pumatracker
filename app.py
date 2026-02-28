@@ -44,6 +44,8 @@ def init_db():
                 gtd           TEXT DEFAULT "Inbox",
                 assignee_id   INTEGER,
                 assignee_text TEXT DEFAULT "",
+                description   TEXT DEFAULT "",
+                url           TEXT DEFAULT "",
                 due           TEXT DEFAULT "",
                 done          INTEGER DEFAULT 0,
                 created_at    TEXT DEFAULT CURRENT_TIMESTAMP,
@@ -62,6 +64,18 @@ def init_db():
 
         try:
             db.execute('ALTER TABLE tasks ADD COLUMN assignee_text TEXT DEFAULT ""')
+            db.commit()
+        except sqlite3.OperationalError:
+            pass  # Column already exists
+
+        try:
+            db.execute('ALTER TABLE tasks ADD COLUMN description TEXT DEFAULT ""')
+            db.commit()
+        except sqlite3.OperationalError:
+            pass  # Column already exists
+
+        try:
+            db.execute('ALTER TABLE tasks ADD COLUMN url TEXT DEFAULT ""')
             db.commit()
         except sqlite3.OperationalError:
             pass  # Column already exists
@@ -209,7 +223,7 @@ def create_task():
 def update_task(task_id):
     data   = request.json
     uid    = session['user_id']
-    fields = ['name', 'status', 'priority', 'gtd', 'assignee_id', 'due', 'done']
+    fields = ['name', 'status', 'priority', 'gtd', 'assignee_id', 'due', 'done', 'description', 'url']
     sets, params = [], []
 
     for f in fields:

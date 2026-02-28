@@ -79,9 +79,10 @@ td:first-child { padding-left:24px; }
 .cb.checked { background:var(--s-done); border-color:var(--s-done); }
 .cb.checked::after { content:'✓'; color:#0e0f11; font-size:11px; font-weight:bold; }
 
-/* Editable task name */
-.task-name { font-size:.9rem; color:var(--text); cursor:text; padding:4px 6px; border-radius:4px; border:1px solid transparent; outline:none; background:transparent; font-family:'IBM Plex Sans',sans-serif; width:100%; transition:border-color .15s, background .15s; }
-.task-name:focus { border-color:var(--accent); background:var(--surface2); }
+/* Task name display (span) and rename input */
+.task-name-text { font-size:.9rem; color:var(--text); cursor:text; padding:4px 6px; border-radius:4px; border:1px solid transparent; display:inline-block; transition:border-color .15s, background .15s; }
+.task-name-text:hover { border-color:var(--border2); background:var(--surface2); }
+.task-name { font-size:.9rem; color:var(--text); padding:4px 6px; border-radius:4px; border:1px solid var(--accent); outline:none; background:var(--surface2); font-family:'IBM Plex Sans',sans-serif; min-width:160px; }
 
 /* Pill selects */
 .pill-select { border:none; border-radius:6px; font-family:'IBM Plex Sans',sans-serif; font-size:.75rem; font-weight:700; padding:5px 10px; cursor:pointer; outline:none; -webkit-appearance:none; appearance:none; text-align:center; transition:filter .15s, transform .1s; letter-spacing:.02em; }
@@ -121,6 +122,30 @@ td:first-child { padding-left:24px; }
 /* Toast */
 .toast { position:fixed; bottom:28px; right:28px; background:var(--surface2); border:1px solid var(--border2); border-radius:8px; padding:12px 20px; font-size:.85rem; color:var(--text); box-shadow:0 8px 32px rgba(0,0,0,.4); z-index:9999; transform:translateY(10px); opacity:0; transition:all .3s; pointer-events:none; }
 .toast.show { transform:translateY(0); opacity:1; }
+
+/* Task Detail Panel */
+.panel-overlay { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:150; display:none; }
+.panel-overlay.open { display:block; }
+.task-panel { position:fixed; top:0; right:0; width:420px; max-width:100vw; height:100vh; background:var(--surface); border-left:1px solid var(--border2); z-index:151; transform:translateX(100%); transition:transform .25s cubic-bezier(.4,0,.2,1); display:flex; flex-direction:column; box-shadow:-12px 0 40px rgba(0,0,0,.4); }
+.task-panel.open { transform:translateX(0); }
+.panel-head { display:flex; align-items:center; justify-content:space-between; padding:20px 24px; border-bottom:1px solid var(--border); flex-shrink:0; }
+.panel-head-title { font-family:'Syne',sans-serif; font-size:.8rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--text-faint); }
+.panel-close { background:none; border:1px solid var(--border2); color:var(--text-dim); font-size:.9rem; cursor:pointer; padding:5px 10px; border-radius:5px; transition:all .15s; line-height:1; }
+.panel-close:hover { color:var(--text); border-color:var(--text-dim); }
+.panel-body { padding:24px; flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:18px; }
+.panel-field { display:flex; flex-direction:column; gap:6px; }
+.panel-label { font-size:.68rem; letter-spacing:.1em; text-transform:uppercase; color:var(--text-faint); font-family:'IBM Plex Mono',monospace; }
+.panel-input, .panel-select, .panel-textarea { background:var(--surface2); border:1px solid var(--border2); color:var(--text); font-family:'IBM Plex Sans',sans-serif; font-size:.9rem; padding:9px 12px; border-radius:6px; outline:none; transition:border-color .15s; width:100%; }
+.panel-input:focus, .panel-select:focus, .panel-textarea:focus { border-color:var(--accent); }
+.panel-textarea { resize:vertical; min-height:120px; line-height:1.5; }
+.panel-select { cursor:pointer; }
+.panel-input[type=date] { color-scheme:dark; }
+.panel-foot { padding:18px 24px; border-top:1px solid var(--border); display:flex; gap:10px; justify-content:flex-end; flex-shrink:0; }
+.panel-btn-save { background:var(--accent); color:#fff; border:none; border-radius:6px; padding:10px 24px; font-family:'IBM Plex Sans',sans-serif; font-size:.88rem; font-weight:600; cursor:pointer; transition:opacity .15s; }
+.panel-btn-save:hover { opacity:.85; }
+.panel-btn-cancel { background:var(--surface2); color:var(--text-dim); border:1px solid var(--border2); border-radius:6px; padding:10px 16px; font-family:'IBM Plex Sans',sans-serif; font-size:.88rem; cursor:pointer; transition:background .15s; }
+.panel-btn-cancel:hover { background:var(--border2); }
+tbody tr { cursor:pointer; }
 
 /* Send modal */
 .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:200; display:none; align-items:center; justify-content:center; }
@@ -266,12 +291,71 @@ td:first-child { padding-left:24px; }
   </div>
 </div>
 
+<!-- TASK DETAIL PANEL -->
+<div class="panel-overlay" id="panelOverlay" onclick="closeTaskPanel()"></div>
+<div class="task-panel" id="taskPanel">
+  <div class="panel-head">
+    <span class="panel-head-title">Task Details</span>
+    <button class="panel-close" onclick="closeTaskPanel()">✕ Close</button>
+  </div>
+  <div class="panel-body">
+    <div class="panel-field">
+      <label class="panel-label">Task Name</label>
+      <input class="panel-input" id="panelName" type="text" placeholder="Task name"/>
+    </div>
+    <div class="panel-field">
+      <label class="panel-label">GTD</label>
+      <select class="panel-select" id="panelGtd" onchange="colorPanelSelect(this,'gtd')">
+        <option>Inbox</option><option>Today</option><option>Soon</option><option>Waiting</option><option>On Hold</option>
+      </select>
+    </div>
+    <div class="panel-field">
+      <label class="panel-label">Status</label>
+      <select class="panel-select" id="panelStatus" onchange="colorPanelSelect(this,'status')">
+        <option>Not Started</option><option>In Progress</option><option>Completed</option>
+      </select>
+    </div>
+    <div class="panel-field">
+      <label class="panel-label">Priority</label>
+      <select class="panel-select" id="panelPriority" onchange="colorPanelSelect(this,'priority')">
+        <option>High</option><option>Medium</option><option>Low</option>
+      </select>
+    </div>
+    <div class="panel-field">
+      <label class="panel-label">Assignee</label>
+      <input class="panel-input" id="panelAssignee" list="userList" placeholder="—"/>
+    </div>
+    <div class="panel-field">
+      <label class="panel-label">Due Date</label>
+      <input class="panel-input" id="panelDue" type="date"/>
+    </div>
+    <div class="panel-field">
+      <label class="panel-label">URL</label>
+      <input class="panel-input" id="panelUrl" type="url" placeholder="https://…" oninput="updateUrlLink()"/>
+      <a id="panelUrlLink" href="#" target="_blank" rel="noopener noreferrer"
+         style="display:none;font-size:.8rem;color:var(--accent);margin-top:4px;text-decoration:none;align-items:center;gap:4px;">
+        ↗ Open link
+      </a>
+    </div>
+    <div class="panel-field">
+      <label class="panel-label">Description</label>
+      <textarea class="panel-textarea" id="panelDescription" placeholder="Add notes, context, or details…"></textarea>
+    </div>
+  </div>
+  <div class="panel-foot">
+    <button class="panel-btn-cancel" onclick="closeTaskPanel()">Cancel</button>
+    <button class="panel-btn-save" onclick="saveTaskPanel()">Save Changes</button>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
 <script>
 let currentView = 'all';
 let sendTaskId = null;
+let taskCache = {};
+let activePanelTaskId = null;
 
 // ── TOAST ──
 function toast(msg, duration=2500) {
@@ -323,12 +407,13 @@ function renderTable(tasks) {
     body.innerHTML = '<tr class="empty-row"><td colspan="9">No tasks here — add one above!</td></tr>';
     return;
   }
+  tasks.forEach(t => taskCache[t.id] = t);
   body.innerHTML = tasks.map(t => {
     const done = t.done ? 'done-row' : '';
     const cbCls = t.done ? 'cb checked' : 'cb';
-    return `<tr class="${done}" data-id="${t.id}">
+    return `<tr class="${done}" data-id="${t.id}" onclick="handleRowClick(event,${t.id})">
       <td><div class="${cbCls}" onclick="toggleDone(${t.id},${t.done?0:1})"></div></td>
-      <td><input class="task-name" value="${esc(t.name)}" onblur="patch(${t.id},{name:this.value})" onkeydown="if(event.key==='Enter')this.blur()"/></td>
+      <td><span class="task-name-text" onclick="event.stopPropagation();startRename(this,${t.id})">${esc(t.name)}</span></td>
       <td>${pill('gtd', t.gtd, t.id, ['Inbox','Today','Soon','Waiting','On Hold'])}</td>
       <td>${pill('status', t.status, t.id, ['Not Started','In Progress','Completed'])}</td>
       <td>${pill('priority', t.priority, t.id, ['High','Medium','Low'])}</td>
@@ -341,6 +426,41 @@ function renderTable(tasks) {
 }
 
 function slug(s) { return s.replace(/ /g, '-'); }
+
+function startRename(span, taskId) {
+  const original = span.textContent;
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'task-name';
+  input.value = original;
+  span.replaceWith(input);
+  input.focus();
+  input.select();
+
+  function finish() {
+    const val = input.value.trim() || original;
+    if (val !== original) patch(taskId, { name: val });
+    const newSpan = document.createElement('span');
+    newSpan.className = 'task-name-text';
+    newSpan.textContent = val;
+    newSpan.onclick = e => { e.stopPropagation(); startRename(newSpan, taskId); };
+    input.replaceWith(newSpan);
+    if (taskCache[taskId]) taskCache[taskId].name = val;
+  }
+
+  input.addEventListener('blur', finish);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') input.blur();
+    if (e.key === 'Escape') { input.value = original; input.blur(); }
+  });
+}
+
+function handleRowClick(e, taskId) {
+  const tag = e.target.tagName.toLowerCase();
+  if (['select','input','button','a'].includes(tag)) return;
+  if (e.target.closest('.cb')) return;
+  openTaskPanel(taskCache[taskId]);
+}
 
 function pill(field, value, id, options) {
   const opts = options.map(o => `<option${o===value?' selected':''}>${o}</option>`).join('');
@@ -381,6 +501,92 @@ async function deleteTask(id) {
   loadTasks();
 }
 
+// ── PANEL SELECT COLORS ──
+const PANEL_COLORS = {
+  status: {
+    'Not Started': { bg:'rgba(232,234,240,.18)', color:'#e8eaf0', border:'1px solid rgba(232,234,240,.35)' },
+    'In Progress':  { bg:'#059669', color:'#fff', border:'1px solid #059669' },
+    'Completed':    { bg:'#2563eb', color:'#fff', border:'1px solid #2563eb' },
+  },
+  gtd: {
+    'Inbox':   { bg:'rgba(232,234,240,.18)', color:'#e8eaf0', border:'1px solid rgba(232,234,240,.35)' },
+    'Today':   { bg:'#059669', color:'#fff', border:'1px solid #059669' },
+    'Soon':    { bg:'#ca8a04', color:'#fff', border:'1px solid #ca8a04' },
+    'Waiting': { bg:'#c2410c', color:'#fff', border:'1px solid #c2410c' },
+    'On Hold': { bg:'#dc2626', color:'#fff', border:'1px solid #dc2626' },
+  },
+  priority: {
+    'High':   { bg:'#d93025', color:'#fff', border:'1px solid #d93025' },
+    'Medium': { bg:'#d97706', color:'#fff', border:'1px solid #d97706' },
+    'Low':    { bg:'#16a34a', color:'#fff', border:'1px solid #16a34a' },
+  }
+};
+function colorPanelSelect(el, field) {
+  const c = (PANEL_COLORS[field] || {})[el.value];
+  if (!c) return;
+  el.style.background  = c.bg;
+  el.style.color       = c.color;
+  el.style.border      = c.border;
+  el.style.fontWeight  = '700';
+}
+
+// ── TASK DETAIL PANEL ──
+function openTaskPanel(task) {
+  activePanelTaskId = task.id;
+  document.getElementById('panelName').value     = task.name || '';
+  document.getElementById('panelGtd').value      = task.gtd || 'Inbox';
+  document.getElementById('panelStatus').value   = task.status || 'Not Started';
+  document.getElementById('panelPriority').value = task.priority || 'Medium';
+  document.getElementById('panelAssignee').value = task.assignee_name || task.assignee_text || '';
+  document.getElementById('panelDue').value         = task.due || '';
+  document.getElementById('panelUrl').value         = task.url || '';
+  document.getElementById('panelDescription').value = task.description || '';
+  colorPanelSelect(document.getElementById('panelGtd'),      'gtd');
+  colorPanelSelect(document.getElementById('panelStatus'),   'status');
+  colorPanelSelect(document.getElementById('panelPriority'), 'priority');
+  updateUrlLink();
+  document.getElementById('panelOverlay').classList.add('open');
+  document.getElementById('taskPanel').classList.add('open');
+  document.getElementById('panelName').focus();
+}
+
+function updateUrlLink() {
+  const url = document.getElementById('panelUrl').value.trim();
+  const link = document.getElementById('panelUrlLink');
+  if (url) {
+    link.href = url;
+    link.style.display = 'flex';
+  } else {
+    link.style.display = 'none';
+  }
+}
+
+function closeTaskPanel() {
+  document.getElementById('panelOverlay').classList.remove('open');
+  document.getElementById('taskPanel').classList.remove('open');
+  activePanelTaskId = null;
+}
+
+async function saveTaskPanel() {
+  if (!activePanelTaskId) return;
+  const data = {
+    name:     document.getElementById('panelName').value.trim(),
+    gtd:      document.getElementById('panelGtd').value,
+    status:   document.getElementById('panelStatus').value,
+    priority: document.getElementById('panelPriority').value,
+    assignee:     document.getElementById('panelAssignee').value.trim(),
+    due:          document.getElementById('panelDue').value,
+    url:          document.getElementById('panelUrl').value.trim(),
+    description:  document.getElementById('panelDescription').value,
+  };
+  await fetch(`/api/tasks/${activePanelTaskId}`, {
+    method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)
+  });
+  closeTaskPanel();
+  loadTasks();
+  toast('✅ Task saved!');
+}
+
 // ── SEND MODAL ──
 function openSendModal(id, name) {
   sendTaskId = id;
@@ -407,6 +613,8 @@ async function confirmSend() {
 
 // Enter to add
 document.getElementById('newTask').addEventListener('keydown', e => { if(e.key==='Enter') addTask(); });
+// Escape to close panel
+document.addEventListener('keydown', e => { if(e.key==='Escape') closeTaskPanel(); });
 // Close modal on overlay click
 document.getElementById('sendModal').addEventListener('click', e => { if(e.target===e.currentTarget) closeModal(); });
 
