@@ -197,8 +197,9 @@ def get_tasks():
     f_prio    = request.args.get('priority', '')
     f_status  = request.args.get('status', '')
     f_gtd     = request.args.get('gtd', '')
-    f_group   = request.args.get('group_id', '')
-    archived  = request.args.get('archived', '0')
+    f_group      = request.args.get('group_id', '')
+    f_no_project = request.args.get('no_project', '')
+    archived     = request.args.get('archived', '0')
     uid       = session['user_id']
 
     query  = ('SELECT t.*, u.username as assignee_name, g.name as group_name '
@@ -230,10 +231,11 @@ def get_tasks():
         query += f' AND {clause}'
         params.append(val)
 
-    if f_prio:   query += ' AND t.priority = ?';  params.append(f_prio)
-    if f_status: query += ' AND t.status = ?';    params.append(f_status)
-    if f_gtd:    query += ' AND t.gtd = ?';       params.append(f_gtd)
-    if f_group:  query += ' AND t.group_id = ?';  params.append(int(f_group))
+    if f_prio:        query += ' AND t.priority = ?';       params.append(f_prio)
+    if f_status:      query += ' AND t.status = ?';        params.append(f_status)
+    if f_gtd:         query += ' AND t.gtd = ?';           params.append(f_gtd)
+    if f_group:       query += ' AND t.group_id = ?';      params.append(int(f_group))
+    if f_no_project:  query += ' AND t.group_id IS NULL'
 
     query += (" ORDER BY CASE t.gtd"
               " WHEN 'Inbox' THEN 0"

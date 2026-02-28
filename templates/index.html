@@ -298,6 +298,9 @@ tr.drop-below td { box-shadow:inset 0 -2px 0 0 var(--accent); }
     </div>
 
     <div class="sidebar-label" style="margin-top:8px">Projects</div>
+    <div class="sidebar-item" onclick="setView('no-project',this)">
+      <div class="sidebar-dot" style="background:var(--text-faint)"></div>No Project
+    </div>
     <div id="sidebarGroups"></div>
     <button class="sidebar-new-group-btn" onclick="createProject()">＋ New Project</button>
   </div>
@@ -481,6 +484,12 @@ async function loadTasks() {
   if (currentView.startsWith('group-')) {
     params.set('view', 'all');
     params.set('group_id', currentView.split('-')[1]);
+  }
+
+  // No-project view: tasks with no project assigned
+  if (currentView === 'no-project') {
+    params.set('view', 'all');
+    params.set('no_project', '1');
   }
 
   // Archive view fetches only archived tasks
