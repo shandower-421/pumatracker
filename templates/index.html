@@ -560,7 +560,7 @@ function renderGrouped(tasks) {
   }
 
   // Non-"all" views that already filter to one GTD/priority/project: flat list
-  const useSections = (currentView === 'all' || currentView.startsWith('group-'));
+  const useSections = (currentView === 'all' || currentView.startsWith('group-') || currentView === 'no-project');
   if (!useSections) {
     if (!tasks.length) {
       body.innerHTML = '<tr class="empty-row"><td colspan="10">No tasks here — add one above!</td></tr>';
