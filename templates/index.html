@@ -237,7 +237,7 @@ tr.drop-below td { box-shadow:inset 0 -2px 0 0 var(--accent); }
 <body>
 
 <!-- TOP BAR -->
-<div class="topbar">
+<div class="topbar" oncontextmenu="event.preventDefault()">
   <div class="logo">Puma<span>Tracker</span></div>
   <div class="topbar-spacer"></div>
   <button class="archive-btn" onclick="archiveCompleted()">Archive ↓</button>
@@ -322,7 +322,7 @@ tr.drop-below td { box-shadow:inset 0 -2px 0 0 var(--accent); }
   </div>
 
   <!-- CONTENT -->
-  <div class="content">
+  <div class="content" oncontextmenu="event.preventDefault()">
     <div class="add-bar">
       <input class="add-input" id="newTask" placeholder="+ Type a task and press Enter…"/>
       <button class="add-btn" onclick="addTask()">Add Task</button>
