@@ -222,15 +222,16 @@ tr.drop-below td { box-shadow:inset 0 -2px 0 0 var(--accent); }
 .sidebar-proj-item:hover .sidebar-proj-handle { opacity:.5; }
 .sidebar-proj-item:active .sidebar-proj-handle { cursor:grabbing; }
 .sidebar-proj-name { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.sidebar-proj-actions { display:flex; gap:1px; opacity:0; flex-shrink:0; transition:opacity .12s; }
-.sidebar-proj-item:hover .sidebar-proj-actions { opacity:1; }
-.sidebar-proj-btn { background:none; border:none; color:var(--text-faint); cursor:pointer; font-size:.72rem; padding:2px 5px; border-radius:3px; line-height:1; transition:color .12s, background .12s; }
-.sidebar-proj-btn:hover { color:var(--text); background:var(--surface2); }
-.sidebar-proj-btn.del:hover { color:var(--p-high) !important; background:rgba(217,48,37,.1); }
 .sidebar-rename-input { background:var(--surface2); border:1px solid var(--accent); border-radius:4px; color:var(--text); font-size:.84rem; padding:1px 5px; width:100%; min-width:0; font-family:inherit; outline:none; }
 .sidebar-item.sidebar-drop-above { box-shadow:0 -2px 0 0 var(--accent); }
 .sidebar-item.sidebar-drop-below { box-shadow:0 2px 0 0 var(--accent); }
 .sidebar-item.proj-dragging { opacity:.35; }
+/* Right-click context menu */
+.ctx-menu { position:fixed; background:var(--surface2); border:1px solid var(--border2); border-radius:6px; padding:4px 0; min-width:140px; z-index:1000; box-shadow:0 6px 20px rgba(0,0,0,.4); }
+.ctx-menu-item { display:flex; align-items:center; gap:8px; padding:7px 14px; font-size:.84rem; color:var(--text-dim); cursor:pointer; transition:background .1s, color .1s; }
+.ctx-menu-item:hover { background:var(--surface); color:var(--text); }
+.ctx-menu-item.danger:hover { color:var(--p-high); background:rgba(217,48,37,.1); }
+.ctx-menu-icon { font-size:.75rem; opacity:.7; }
 </style>
 </head>
 <body>
@@ -439,6 +440,12 @@ tr.drop-below td { box-shadow:inset 0 -2px 0 0 var(--accent); }
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
+<!-- PROJECT CONTEXT MENU -->
+<div class="ctx-menu" id="projCtxMenu" style="display:none">
+  <div class="ctx-menu-item" onclick="ctxRename()"><span class="ctx-menu-icon">✎</span> Rename</div>
+  <div class="ctx-menu-item danger" onclick="ctxDelete()"><span class="ctx-menu-icon">✕</span> Delete</div>
+</div>
+
 <script>
 let sendTaskId = null;
 let taskCache = {};
@@ -529,15 +536,12 @@ function renderSidebarGroups() {
          ondragleave="onProjDragLeave(event)"
          ondrop="onProjDrop(event,${g.id})"
          ondragend="onProjDragEnd(event)"
-         onclick="toggleProjectFilter('group-${g.id}')">
+         onclick="toggleProjectFilter('group-${g.id}')"
+         oncontextmenu="openProjContextMenu(event,${g.id})">
       <span class="sidebar-proj-handle" onclick="event.stopPropagation()">⠿⠿</span>
       <div class="sidebar-dot" style="background:var(--accent);flex-shrink:0"></div>
       <span class="sidebar-proj-name" id="sbpname-${g.id}">${esc(g.name)}</span>
       <span class="sidebar-count">${g.task_count ?? 0}</span>
-      <span class="sidebar-proj-actions">
-        <button class="sidebar-proj-btn" onclick="event.stopPropagation();renameSidebarProject(${g.id})" title="Rename">✎</button>
-        <button class="sidebar-proj-btn del" onclick="event.stopPropagation();deleteProject(${g.id})" title="Delete">✕</button>
-      </span>
     </div>`).join('');
   updateSidebarActive();
 }
@@ -865,6 +869,47 @@ function renameSidebarProject(groupId) {
     if (e.key === 'Escape') { input.value = oldName; input.blur(); }
   });
 }
+
+// ── PROJECT CONTEXT MENU ──
+let ctxGroupId = null;
+
+function openProjContextMenu(e, groupId) {
+  e.preventDefault();
+  e.stopPropagation();
+  ctxGroupId = groupId;
+  const menu = document.getElementById('projCtxMenu');
+  menu.style.display = 'block';
+  // Position near cursor, keep inside viewport
+  const x = Math.min(e.clientX, window.innerWidth  - menu.offsetWidth  - 8);
+  const y = Math.min(e.clientY, window.innerHeight - menu.offsetHeight - 8);
+  menu.style.left = x + 'px';
+  menu.style.top  = y + 'px';
+}
+
+function closeProjContextMenu() {
+  document.getElementById('projCtxMenu').style.display = 'none';
+  ctxGroupId = null;
+}
+
+function ctxRename() {
+  const id = ctxGroupId;
+  closeProjContextMenu();
+  renameSidebarProject(id);
+}
+
+function ctxDelete() {
+  const id = ctxGroupId;
+  closeProjContextMenu();
+  deleteProject(id);
+}
+
+// Close menu on any click or Escape outside
+document.addEventListener('click', e => {
+  if (!e.target.closest('#projCtxMenu')) closeProjContextMenu();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeProjContextMenu();
+});
 
 // ── SIDEBAR PROJECT DRAG-TO-REORDER ──
 let dragProjId = null;
