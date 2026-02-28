@@ -88,7 +88,7 @@ td:first-child { padding-left:24px; }
 .pill-select { border:none; border-radius:6px; font-family:'IBM Plex Sans',sans-serif; font-size:.75rem; font-weight:700; padding:5px 10px; cursor:pointer; outline:none; -webkit-appearance:none; appearance:none; text-align:center; transition:filter .15s, transform .1s; letter-spacing:.02em; }
 .pill-select:hover { filter:brightness(1.15); transform:scale(1.04); }
 .priority-blank    { background:rgba(232,234,240,.18); color:transparent; border:1px solid rgba(232,234,240,.35); min-width:34px; }
-.priority-Critical { background:#ef4444; color:#fff; }
+.priority-Critical { background:#dc2626; color:#fff; outline:2px solid #fff; outline-offset:-3px; }
 .priority-High     { background:#d93025; color:#fff; }
 .priority-Medium   { background:#d97706; color:#fff; }
 .priority-Low      { background:#059669; color:#fff; }
@@ -889,7 +889,7 @@ const PANEL_COLORS = {
   },
   priority: {
     '':         { bg:'rgba(232,234,240,.18)', color:'rgba(232,234,240,.5)', border:'1px solid rgba(232,234,240,.35)' },
-    'Critical': { bg:'#ef4444', color:'#fff', border:'1px solid #ef4444' },
+    'Critical': { bg:'#dc2626', color:'#fff', border:'1px solid #dc2626', outline:'2px solid #fff', outlineOffset:'-3px' },
     'High':     { bg:'#d93025', color:'#fff', border:'1px solid #d93025' },
     'Medium':   { bg:'#d97706', color:'#fff', border:'1px solid #d97706' },
     'Low':      { bg:'#059669', color:'#fff', border:'1px solid #059669' },
@@ -899,10 +899,12 @@ const PANEL_COLORS = {
 function colorPanelSelect(el, field) {
   const c = (PANEL_COLORS[field] || {})[el.value];
   if (!c) return;
-  el.style.background  = c.bg;
-  el.style.color       = c.color;
-  el.style.border      = c.border;
-  el.style.fontWeight  = '700';
+  el.style.background   = c.bg;
+  el.style.color        = c.color;
+  el.style.border       = c.border;
+  el.style.fontWeight   = '700';
+  el.style.outline      = c.outline      || '';
+  el.style.outlineOffset= c.outlineOffset|| '';
 }
 
 // ── TASK DETAIL PANEL ──
