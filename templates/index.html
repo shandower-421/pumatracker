@@ -671,11 +671,13 @@ async function toggleDone(id, doneVal) {
 }
 
 async function addTask() {
-  const input = document.getElementById('newTask');
-  const name  = input.value.trim();
+  const input   = document.getElementById('newTask');
+  const name    = input.value.trim();
   if (!name) return;
   input.value = '';
-  await fetch('/api/tasks', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name}) });
+  const payload = { name };
+  if (currentView.startsWith('group-')) payload.group_id = parseInt(currentView.split('-')[1]);
+  await fetch('/api/tasks', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
   loadTasks();
 }
 

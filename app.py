@@ -253,14 +253,15 @@ def get_tasks():
 @app.route('/api/tasks', methods=['POST'])
 @login_required
 def create_task():
-    data = request.json
-    name = (data.get('name') or '').strip()
+    data     = request.json
+    name     = (data.get('name') or '').strip()
+    group_id = data.get('group_id')
     if not name:
         return jsonify({'error': 'Name required'}), 400
     with get_db() as db:
         cur = db.execute(
-            'INSERT INTO tasks (owner_id, name, priority) VALUES (?, ?, ?)',
-            (session['user_id'], name, '')
+            'INSERT INTO tasks (owner_id, name, priority, group_id) VALUES (?, ?, ?, ?)',
+            (session['user_id'], name, '', group_id)
         )
         db.commit()
         task = db.execute(
