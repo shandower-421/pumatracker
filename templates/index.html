@@ -339,8 +339,6 @@ tr.drop-below td { box-shadow:inset 0 -2px 0 0 var(--accent); }
             <th>Project</th>
             <th>Assignee</th>
             <th>Due Date</th>
-            <th>Send To</th>
-            <th></th>
           </tr>
         </thead>
         <tbody id="taskBody"></tbody>
@@ -439,6 +437,12 @@ tr.drop-below td { box-shadow:inset 0 -2px 0 0 var(--accent); }
 
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
+
+<!-- TASK CONTEXT MENU -->
+<div class="ctx-menu" id="taskCtxMenu" style="display:none">
+  <div class="ctx-menu-item" onclick="ctxSendTask()"><span class="ctx-menu-icon">↗</span> Send to User</div>
+  <div class="ctx-menu-item danger" onclick="ctxDeleteTask()"><span class="ctx-menu-icon">✕</span> Delete</div>
+</div>
 
 <!-- PROJECT CONTEXT MENU -->
 <div class="ctx-menu" id="projCtxMenu" style="display:none">
@@ -607,7 +611,8 @@ function taskRow(t) {
     ondragleave="onTaskDragLeave(event)"
     ondrop="onTaskDrop(event)"
     ondragend="onTaskDragEnd(event)"
-    onclick="handleRowClick(event,${t.id})">
+    onclick="handleRowClick(event,${t.id})"
+    oncontextmenu="openTaskContextMenu(event,${t.id},'${esc(t.name)}')">
     <td><div class="${cbCls}" onclick="toggleDone(${t.id},${t.done?0:1})"></div></td>
     <td><span class="task-name-text" onclick="event.stopPropagation();startRename(this,${t.id})">${esc(t.name)}</span></td>
     <td>${pill('gtd', t.gtd, t.id, ['Inbox','Today','Soon','Waiting','On Hold'])}</td>
@@ -616,8 +621,6 @@ function taskRow(t) {
     <td class="project-cell">${esc(t.group_name||'')}</td>
     <td><input class="assignee-input" list="userList" value="${esc(t.assignee_name||t.assignee_text||'')}" placeholder="—" onblur="patch(${t.id},{assignee:this.value})"/></td>
     <td><input class="date-input" type="date" value="${t.due||''}" onchange="patch(${t.id},{due:this.value})"/></td>
-    <td><button class="send-btn" onclick="openSendModal(${t.id},'${esc(t.name)}')">↗ Send</button></td>
-    <td><button class="del-btn" onclick="deleteTask(${t.id})" title="Delete">✕</button></td>
   </tr>`;
 }
 
@@ -631,9 +634,9 @@ function renderGrouped(tasks) {
   // Archive view: flat list, no grouping
   if (filterState.base === 'archive') {
     if (!tasks.length) {
-      body.innerHTML = '<tr class="empty-row"><td colspan="10">Archive is empty.</td></tr>';
+      body.innerHTML = '<tr class="empty-row"><td colspan="8">Archive is empty.</td></tr>';
     } else {
-      body.innerHTML = `<tr class="archive-header-row"><td colspan="10">Archive — Completed Tasks</td></tr>`
+      body.innerHTML = `<tr class="archive-header-row"><td colspan="8">Archive — Completed Tasks</td></tr>`
         + tasks.map(taskRow).join('');
     }
     return;
@@ -643,7 +646,7 @@ function renderGrouped(tasks) {
   const useSections = filterState.base === 'all' && !filterState.gtd;
   if (!useSections) {
     if (!tasks.length) {
-      body.innerHTML = '<tr class="empty-row"><td colspan="10">No tasks here — add one above!</td></tr>';
+      body.innerHTML = '<tr class="empty-row"><td colspan="8">No tasks here — add one above!</td></tr>';
     } else {
       body.innerHTML = tasks.map(taskRow).join('');
     }
@@ -664,7 +667,7 @@ function renderGrouped(tasks) {
   Object.keys(buckets).forEach(k => { if (!GTD_ORDER.includes(k)) sections.push(k); });
 
   if (!sections.length) {
-    body.innerHTML = '<tr class="empty-row"><td colspan="10">No tasks here — add one above!</td></tr>';
+    body.innerHTML = '<tr class="empty-row"><td colspan="8">No tasks here — add one above!</td></tr>';
     return;
   }
 
@@ -675,7 +678,7 @@ function renderGrouped(tasks) {
       ondragover="onGtdHeaderDragOver(event,'${gtdVal}')"
       ondragleave="onGtdHeaderDragLeave(event)"
       ondrop="onGtdHeaderDrop(event,'${gtdVal}')">
-      <td colspan="10">${gtdVal}</td>
+      <td colspan="8">${gtdVal}</td>
     </tr>`;
     (buckets[gtdVal] || []).forEach(t => { html += taskRow(t); });
   }
@@ -1177,6 +1180,48 @@ async function saveTaskPanel() {
   loadTasks();
   toast('✅ Task saved!');
 }
+
+// ── TASK CONTEXT MENU ──
+let ctxTaskId   = null;
+let ctxTaskName = null;
+
+function openTaskContextMenu(e, taskId, taskName) {
+  e.preventDefault();
+  e.stopPropagation();
+  ctxTaskId   = taskId;
+  ctxTaskName = taskName;
+  const menu = document.getElementById('taskCtxMenu');
+  menu.style.display = 'block';
+  const x = Math.min(e.clientX, window.innerWidth  - menu.offsetWidth  - 8);
+  const y = Math.min(e.clientY, window.innerHeight - menu.offsetHeight - 8);
+  menu.style.left = x + 'px';
+  menu.style.top  = y + 'px';
+}
+
+function closeTaskContextMenu() {
+  document.getElementById('taskCtxMenu').style.display = 'none';
+  ctxTaskId = null; ctxTaskName = null;
+}
+
+function ctxSendTask() {
+  const id = ctxTaskId, name = ctxTaskName;
+  closeTaskContextMenu();
+  openSendModal(id, name);
+}
+
+function ctxDeleteTask() {
+  const id = ctxTaskId;
+  closeTaskContextMenu();
+  deleteTask(id);
+}
+
+// Close task menu on outside click / Escape
+document.addEventListener('click', e => {
+  if (!e.target.closest('#taskCtxMenu')) closeTaskContextMenu();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeTaskContextMenu();
+});
 
 // ── SEND MODAL ──
 function openSendModal(id, name) {
