@@ -92,6 +92,7 @@ tr.disabled-row td:last-child { opacity: 1; }
     <div class="card-header">Create New User</div>
     <div class="card-body">
       <form method="POST" action="/admin/create_user">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="form-row">
           <div class="form-field">
             <label>Username</label>
@@ -149,6 +150,7 @@ tr.disabled-row td:last-child { opacity: 1; }
             </td>
             <td>
               <form class="reset-form" method="POST" action="/admin/reset_password/{{ u.id }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="password" name="new_password" placeholder="New password" autocomplete="new-password"/>
                 <button class="btn sm" type="submit">Reset</button>
               </form>
@@ -156,13 +158,15 @@ tr.disabled-row td:last-child { opacity: 1; }
             <td style="text-align:right;display:flex;gap:8px;justify-content:flex-end;">
               {% if u.id != session.user_id %}
                 <form method="POST" action="/admin/toggle_user/{{ u.id }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   {% if u.active %}
                     <button class="btn sm warning" type="submit">Disable</button>
                   {% else %}
                     <button class="btn sm" type="submit">Enable</button>
                   {% endif %}
                 </form>
-                <form method="POST" action="/admin/delete_user/{{ u.id }}" onsubmit="return confirm('Delete user {{ u.username }} and all their tasks?')">
+                <form method="POST" action="/admin/delete_user/{{ u.id }}" onsubmit="return confirm('Delete user ' + {{ u.username | tojson }} + ' and all their tasks?')">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <button class="btn sm danger" type="submit">Delete</button>
                 </form>
               {% else %}

@@ -8,11 +8,38 @@ Then open http://localhost:8080 in your browser (or whichever port you chose).
 
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
 from werkzeug.security import generate_password_hash, check_password_hash
-import sqlite3, os, functools, argparse, json
+import sqlite3, os, functools, argparse, json, secrets
 from datetime import datetime
 
 app = Flask(__name__)
-app.secret_key = 'change-this-to-a-random-string-in-production'
+
+# ── Load config early so secret_key and debug are available at startup ──
+_CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'config.json')
+def _load_config():
+    if os.path.exists(_CONFIG_PATH):
+        with open(_CONFIG_PATH) as f:
+            return json.load(f)
+    return {}
+def _save_config(cfg):
+    with open(_CONFIG_PATH, 'w') as f:
+        json.dump(cfg, f, indent=2)
+
+_cfg = _load_config()
+
+# Secret key: env var > config.json > auto-generate and persist
+_secret = os.environ.get('SECRET_KEY') or _cfg.get('secret_key')
+if not _secret:
+    _secret = secrets.token_hex(32)
+    _cfg['secret_key'] = _secret
+    _save_config(_cfg)
+    print('🔑 Generated new secret key and saved to config.json')
+app.secret_key = _secret
+
+# Session cookie hardening
+app.config.update(
+    SESSION_COOKIE_HTTPONLY = True,   # JS cannot read the cookie
+    SESSION_COOKIE_SAMESITE = 'Lax', # blocks cross-site form submissions
+)
 
 DB = 'pumatracker.db'
 
@@ -147,6 +174,24 @@ def admin_required(f):
             return redirect(url_for('index'))
         return f(*args, **kwargs)
     return decorated
+
+# ─────────────────────────────────────────────
+# CSRF HELPERS
+# ─────────────────────────────────────────────
+
+def get_csrf_token():
+    """Return (and lazily create) the per-session CSRF token."""
+    if 'csrf_token' not in session:
+        session['csrf_token'] = secrets.token_hex(32)
+    return session['csrf_token']
+
+def validate_csrf():
+    """Check the submitted CSRF token against the session token."""
+    submitted = request.form.get('csrf_token') or request.headers.get('X-CSRF-Token', '')
+    return submitted and secrets.compare_digest(submitted, session.get('csrf_token', ''))
+
+# Expose get_csrf_token to all Jinja2 templates
+app.jinja_env.globals['csrf_token'] = get_csrf_token
 
 # ─────────────────────────────────────────────
 # AUTH ROUTES
@@ -517,11 +562,17 @@ def admin():
 @login_required
 @admin_required
 def create_user():
+    if not validate_csrf():
+        flash('Invalid request.', 'error')
+        return redirect(url_for('admin'))
     username = request.form.get('username', '').strip()
     password = request.form.get('password', '').strip()
     is_admin = 1 if request.form.get('is_admin') else 0
     if not username or not password:
         flash('Username and password are required.', 'error')
+        return redirect(url_for('admin'))
+    if len(password) < 8:
+        flash('Password must be at least 8 characters.', 'error')
         return redirect(url_for('admin'))
     try:
         with get_db() as db:
@@ -539,6 +590,9 @@ def create_user():
 @login_required
 @admin_required
 def delete_user(user_id):
+    if not validate_csrf():
+        flash('Invalid request.', 'error')
+        return redirect(url_for('admin'))
     if user_id == session['user_id']:
         flash("You can't delete yourself.", 'error')
         return redirect(url_for('admin'))
@@ -553,6 +607,9 @@ def delete_user(user_id):
 @login_required
 @admin_required
 def toggle_user(user_id):
+    if not validate_csrf():
+        flash('Invalid request.', 'error')
+        return redirect(url_for('admin'))
     if user_id == session['user_id']:
         flash("You can't disable your own account.", 'error')
         return redirect(url_for('admin'))
@@ -580,9 +637,15 @@ def toggle_user(user_id):
 @login_required
 @admin_required
 def reset_password(user_id):
+    if not validate_csrf():
+        flash('Invalid request.', 'error')
+        return redirect(url_for('admin'))
     new_pw = request.form.get('new_password', '').strip()
     if not new_pw:
         flash('Password cannot be empty.', 'error')
+        return redirect(url_for('admin'))
+    if len(new_pw) < 8:
+        flash('Password must be at least 8 characters.', 'error')
         return redirect(url_for('admin'))
     with get_db() as db:
         db.execute('UPDATE users SET password = ? WHERE id = ?',
@@ -596,21 +659,19 @@ def reset_password(user_id):
 # ─────────────────────────────────────────────
 
 if __name__ == '__main__':
-    # ── Port resolution: CLI arg → config.json → default 8080 ──
+    # ── Port and debug resolution: CLI arg → config.json → defaults ──
     parser = argparse.ArgumentParser(description='PumaTracker')
-    parser.add_argument('--port', type=int, default=None, help='Port to listen on (default: 8080)')
+    parser.add_argument('--port',  type=int,  default=None, help='Port to listen on (default: 8080)')
+    parser.add_argument('--debug', action='store_true',     help='Enable debug mode (dev only)')
     args = parser.parse_args()
 
-    port = args.port
-    if port is None:
-        config_path = os.path.join(os.path.dirname(__file__), 'config.json')
-        if os.path.exists(config_path):
-            with open(config_path) as f:
-                cfg = json.load(f)
-            port = cfg.get('port', 8080)
-        else:
-            port = 8080
+    cfg  = _load_config()
+    port  = args.port  if args.port  is not None else cfg.get('port',  8080)
+    debug = args.debug or cfg.get('debug', False)
+
+    if debug:
+        print('⚠️  Debug mode is ON — do not use in production')
 
     init_db()
     print(f"🚀 PumaTracker running at http://localhost:{port}")
-    app.run(debug=True, host='0.0.0.0', port=port)
+    app.run(debug=debug, host='0.0.0.0', port=port)

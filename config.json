@@ -1,3 +1,4 @@
 {
-  "port": 8080
+  "port": 8080,
+  "secret_key": "4e121afb62b9e32526fb02a6988ccb75446065d1ee2adff273c38dcd056b9179"
 }
