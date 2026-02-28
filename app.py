@@ -48,7 +48,7 @@ def init_db():
                 owner_id      INTEGER NOT NULL,
                 name          TEXT NOT NULL,
                 status        TEXT DEFAULT "Not Started",
-                priority      TEXT DEFAULT "Medium",
+                priority      TEXT DEFAULT "",
                 gtd           TEXT DEFAULT "Inbox",
                 assignee_id   INTEGER,
                 assignee_text TEXT DEFAULT "",
@@ -231,8 +231,8 @@ def create_task():
         return jsonify({'error': 'Name required'}), 400
     with get_db() as db:
         cur = db.execute(
-            'INSERT INTO tasks (owner_id, name) VALUES (?, ?)',
-            (session['user_id'], name)
+            'INSERT INTO tasks (owner_id, name, priority) VALUES (?, ?, ?)',
+            (session['user_id'], name, '')
         )
         db.commit()
         task = db.execute(

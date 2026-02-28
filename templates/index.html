@@ -87,9 +87,12 @@ td:first-child { padding-left:24px; }
 /* Pill selects */
 .pill-select { border:none; border-radius:6px; font-family:'IBM Plex Sans',sans-serif; font-size:.75rem; font-weight:700; padding:5px 10px; cursor:pointer; outline:none; -webkit-appearance:none; appearance:none; text-align:center; transition:filter .15s, transform .1s; letter-spacing:.02em; }
 .pill-select:hover { filter:brightness(1.15); transform:scale(1.04); }
-.priority-High    { background:#d93025; color:#fff; }
-.priority-Medium  { background:#d97706; color:#fff; }
-.priority-Low     { background:#059669; color:#fff; }
+.priority-blank    { background:rgba(232,234,240,.18); color:transparent; border:1px solid rgba(232,234,240,.35); min-width:34px; }
+.priority-Critical { background:#ef4444; color:#fff; }
+.priority-High     { background:#d93025; color:#fff; }
+.priority-Medium   { background:#d97706; color:#fff; }
+.priority-Low      { background:#059669; color:#fff; }
+.priority-Info     { background:#2563eb; color:#fff; }
 .status-Not-Started { background:rgba(232,234,240,.18); color:#e8eaf0; border:1px solid rgba(232,234,240,.35); }
 .status-In-Progress { background:#059669; color:#fff; }
 .status-Completed   { background:#2563eb; color:#fff; }
@@ -210,7 +213,7 @@ tr.drop-below td { box-shadow:inset 0 -2px 0 0 var(--accent); }
     <span class="filter-label">Filter:</span>
     <select class="filter-select" id="filterPriority" onchange="loadTasks()">
       <option value="">All Priorities</option>
-      <option>High</option><option>Medium</option><option>Low</option>
+      <option>Critical</option><option>High</option><option>Medium</option><option>Low</option><option>Info</option>
     </select>
     <select class="filter-select" id="filterStatus" onchange="loadTasks()">
       <option value="">All Statuses</option>
@@ -357,7 +360,8 @@ tr.drop-below td { box-shadow:inset 0 -2px 0 0 var(--accent); }
     <div class="panel-field">
       <label class="panel-label">Priority</label>
       <select class="panel-select" id="panelPriority" onchange="colorPanelSelect(this,'priority')">
-        <option>High</option><option>Medium</option><option>Low</option>
+        <option value="">—</option>
+        <option>Critical</option><option>High</option><option>Medium</option><option>Low</option><option>Info</option>
       </select>
     </div>
     <div class="panel-field">
@@ -486,7 +490,7 @@ function taskRow(t) {
     <td><span class="task-name-text" onclick="event.stopPropagation();startRename(this,${t.id})">${esc(t.name)}</span></td>
     <td>${pill('gtd', t.gtd, t.id, ['Inbox','Today','Soon','Waiting','On Hold'])}</td>
     <td>${pill('status', t.status, t.id, ['Not Started','In Progress','Completed'])}</td>
-    <td>${pill('priority', t.priority, t.id, ['High','Medium','Low'])}</td>
+    <td>${pill('priority', t.priority, t.id, ['','Critical','High','Medium','Low','Info'])}</td>
     <td><input class="assignee-input" list="userList" value="${esc(t.assignee_name||t.assignee_text||'')}" placeholder="—" onblur="patch(${t.id},{assignee:this.value})"/></td>
     <td><input class="date-input" type="date" value="${t.due||''}" onchange="patch(${t.id},{due:this.value})"/></td>
     <td><button class="send-btn" onclick="openSendModal(${t.id},'${esc(t.name)}')">↗ Send</button></td>
@@ -560,6 +564,7 @@ function renderGrouped(tasks) {
 }
 
 function slug(s) { return s.replace(/ /g, '-'); }
+function pillSlug(field, value) { return `${field}-${slug(value) || 'blank'}`; }
 
 function startRename(span, taskId) {
   const original = span.textContent;
@@ -597,12 +602,14 @@ function handleRowClick(e, taskId) {
 }
 
 function pill(field, value, id, options) {
-  const opts = options.map(o => `<option${o===value?' selected':''}>${o}</option>`).join('');
-  return `<select class="pill-select ${field}-${slug(value)}" onchange="patch(${id},{${field}:this.value});applyPill(this,'${field}')">${opts}</select>`;
+  const opts = options.map(o =>
+    `<option value="${esc(o)}"${o===value?' selected':''}>${esc(o)}</option>`
+  ).join('');
+  return `<select class="pill-select ${pillSlug(field,value)}" onchange="patch(${id},{${field}:this.value});applyPill(this,'${field}')">${opts}</select>`;
 }
 
 function applyPill(el, field) {
-  el.className = `pill-select ${field}-${slug(el.value)}`;
+  el.className = `pill-select ${pillSlug(field, el.value)}`;
 }
 
 function esc(s) {
@@ -881,9 +888,12 @@ const PANEL_COLORS = {
     'On Hold': { bg:'#dc2626', color:'#fff', border:'1px solid #dc2626' },
   },
   priority: {
-    'High':   { bg:'#d93025', color:'#fff', border:'1px solid #d93025' },
-    'Medium': { bg:'#d97706', color:'#fff', border:'1px solid #d97706' },
-    'Low':    { bg:'#059669', color:'#fff', border:'1px solid #059669' },
+    '':         { bg:'rgba(232,234,240,.18)', color:'rgba(232,234,240,.5)', border:'1px solid rgba(232,234,240,.35)' },
+    'Critical': { bg:'#ef4444', color:'#fff', border:'1px solid #ef4444' },
+    'High':     { bg:'#d93025', color:'#fff', border:'1px solid #d93025' },
+    'Medium':   { bg:'#d97706', color:'#fff', border:'1px solid #d97706' },
+    'Low':      { bg:'#059669', color:'#fff', border:'1px solid #059669' },
+    'Info':     { bg:'#2563eb', color:'#fff', border:'1px solid #2563eb' },
   }
 };
 function colorPanelSelect(el, field) {
@@ -901,7 +911,7 @@ function openTaskPanel(task) {
   document.getElementById('panelName').value     = task.name || '';
   document.getElementById('panelGtd').value      = task.gtd || 'Inbox';
   document.getElementById('panelStatus').value   = task.status || 'Not Started';
-  document.getElementById('panelPriority').value = task.priority || 'Medium';
+  document.getElementById('panelPriority').value = task.priority ?? '';
   document.getElementById('panelAssignee').value = task.assignee_name || task.assignee_text || '';
   document.getElementById('panelDue').value         = task.due || '';
   document.getElementById('panelUrl').value         = task.url || '';
