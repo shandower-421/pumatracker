@@ -254,51 +254,51 @@ tr.drop-below td { box-shadow:inset 0 -2px 0 0 var(--accent); }
   <!-- SIDEBAR -->
   <div class="sidebar">
     <div class="sidebar-label">Views</div>
-    <div class="sidebar-item active" onclick="setView('all',this)">
+    <div class="sidebar-item active" id="sb-all" onclick="clearAllFilters()">
       <div class="sidebar-dot" style="background:#5b8af0"></div>All Tasks
       <span class="sidebar-count" id="cnt-all">—</span>
     </div>
-    <div class="sidebar-item" onclick="setView('inbox',this)">
+    <div class="sidebar-item" id="sb-inbox" onclick="toggleGtdFilter('inbox')">
       <div class="sidebar-dot" style="background:var(--g-inbox)"></div>Inbox
       <span class="sidebar-count" id="cnt-inbox">—</span>
     </div>
-    <div class="sidebar-item" onclick="setView('today',this)">
+    <div class="sidebar-item" id="sb-today" onclick="toggleGtdFilter('today')">
       <div class="sidebar-dot" style="background:var(--g-today)"></div>Today
       <span class="sidebar-count" id="cnt-today">—</span>
     </div>
-    <div class="sidebar-item" onclick="setView('soon',this)">
+    <div class="sidebar-item" id="sb-soon" onclick="toggleGtdFilter('soon')">
       <div class="sidebar-dot" style="background:var(--g-soon)"></div>Soon
       <span class="sidebar-count" id="cnt-soon">—</span>
     </div>
-    <div class="sidebar-item" onclick="setView('waiting',this)">
+    <div class="sidebar-item" id="sb-waiting" onclick="toggleGtdFilter('waiting')">
       <div class="sidebar-dot" style="background:var(--g-waiting)"></div>Waiting
       <span class="sidebar-count" id="cnt-waiting">—</span>
     </div>
-    <div class="sidebar-item" onclick="setView('hold',this)">
+    <div class="sidebar-item" id="sb-hold" onclick="toggleGtdFilter('hold')">
       <div class="sidebar-dot" style="background:var(--g-hold)"></div>On Hold
       <span class="sidebar-count" id="cnt-hold">—</span>
     </div>
-    <div class="sidebar-item" onclick="setView('archive',this)">
+    <div class="sidebar-item" id="sb-archive" onclick="setArchiveView()">
       <div class="sidebar-dot" style="background:var(--text-faint)"></div>Archive
       <span class="sidebar-count" id="cnt-archive">—</span>
     </div>
 
     <div class="sidebar-label" style="margin-top:8px">Priority</div>
-    <div class="sidebar-item" onclick="setView('high',this)">
+    <div class="sidebar-item" id="sb-high" onclick="togglePriorityFilter('high')">
       <div class="sidebar-dot" style="background:var(--p-high)"></div>High
       <span class="sidebar-count" id="cnt-high">—</span>
     </div>
-    <div class="sidebar-item" onclick="setView('medium',this)">
+    <div class="sidebar-item" id="sb-medium" onclick="togglePriorityFilter('medium')">
       <div class="sidebar-dot" style="background:var(--p-med)"></div>Medium
       <span class="sidebar-count" id="cnt-medium">—</span>
     </div>
-    <div class="sidebar-item" onclick="setView('low',this)">
+    <div class="sidebar-item" id="sb-low" onclick="togglePriorityFilter('low')">
       <div class="sidebar-dot" style="background:var(--p-low)"></div>Low
       <span class="sidebar-count" id="cnt-low">—</span>
     </div>
 
     <div class="sidebar-label" style="margin-top:8px">Projects</div>
-    <div class="sidebar-item" onclick="setView('no-project',this)">
+    <div class="sidebar-item" id="sb-no-project" onclick="toggleProjectFilter('no-project')">
       <div class="sidebar-dot" style="background:var(--text-faint)"></div>No Project
     </div>
     <div id="sidebarGroups"></div>
@@ -425,7 +425,6 @@ tr.drop-below td { box-shadow:inset 0 -2px 0 0 var(--accent); }
 <div class="toast" id="toast"></div>
 
 <script>
-let currentView = 'all';
 let sendTaskId = null;
 let taskCache = {};
 let activePanelTaskId = null;
@@ -436,6 +435,13 @@ let dragType   = null;    // 'task'
 let dragTaskId = null;
 let dragTaskGtd = null;
 
+// ── FILTER STATE ──
+// base: 'all' | 'archive'
+// gtd: null | 'inbox'|'today'|'soon'|'waiting'|'hold'
+// priority: null | 'high'|'medium'|'low'
+// project: null | 'no-project' | 'group-{id}'
+let filterState = { base: 'all', gtd: null, priority: null, project: null };
+
 // ── TOAST ──
 function toast(msg, duration=2500) {
   const el = document.getElementById('toast');
@@ -445,10 +451,49 @@ function toast(msg, duration=2500) {
 }
 
 // ── SIDEBAR ──
-function setView(view, el) {
-  currentView = view;
+function updateSidebarActive() {
   document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
-  el.classList.add('active');
+  if (filterState.base === 'archive') {
+    document.getElementById('sb-archive')?.classList.add('active');
+    return;
+  }
+  const hasFilters = filterState.gtd || filterState.priority || filterState.project;
+  if (!hasFilters) document.getElementById('sb-all')?.classList.add('active');
+  if (filterState.gtd)      document.getElementById(`sb-${filterState.gtd}`)?.classList.add('active');
+  if (filterState.priority) document.getElementById(`sb-${filterState.priority}`)?.classList.add('active');
+  if (filterState.project)  document.getElementById(`sb-${filterState.project}`)?.classList.add('active');
+}
+
+function clearAllFilters() {
+  filterState = { base: 'all', gtd: null, priority: null, project: null };
+  updateSidebarActive();
+  loadTasks();
+}
+
+function setArchiveView() {
+  filterState = { base: 'archive', gtd: null, priority: null, project: null };
+  updateSidebarActive();
+  loadTasks();
+}
+
+function toggleGtdFilter(key) {
+  filterState.base = 'all';
+  filterState.gtd = filterState.gtd === key ? null : key;
+  updateSidebarActive();
+  loadTasks();
+}
+
+function togglePriorityFilter(key) {
+  filterState.base = 'all';
+  filterState.priority = filterState.priority === key ? null : key;
+  updateSidebarActive();
+  loadTasks();
+}
+
+function toggleProjectFilter(key) {
+  filterState.base = 'all';
+  filterState.project = filterState.project === key ? null : key;
+  updateSidebarActive();
   loadTasks();
 }
 
@@ -462,40 +507,46 @@ async function loadGroups() {
 function renderSidebarGroups() {
   const el = document.getElementById('sidebarGroups');
   el.innerHTML = groups.map(g => `
-    <div class="sidebar-item" data-group-id="${g.id}"
-         onclick="setView('group-${g.id}',this)">
+    <div class="sidebar-item" id="sb-group-${g.id}"
+         onclick="toggleProjectFilter('group-${g.id}')">
       <div class="sidebar-dot" style="background:var(--accent)"></div>
       ${esc(g.name)}
       <span class="sidebar-count">${g.task_count ?? 0}</span>
     </div>`).join('');
+  // Re-apply active state in case a project is currently selected
+  updateSidebarActive();
 }
 
 // ── LOAD TASKS ──
+const GTD_KEY_MAP = { inbox:'Inbox', today:'Today', soon:'Soon', waiting:'Waiting', hold:'On Hold' };
+const PRIO_KEY_MAP = { high:'High', medium:'Medium', low:'Low' };
+
 async function loadTasks() {
+  const params = new URLSearchParams({ view: 'all' });
+
+  // Top-bar filters (status dropdown always applies)
   const fp = document.getElementById('filterPriority').value;
   const fs = document.getElementById('filterStatus').value;
   const fg = document.getElementById('filterGTD').value;
-  const params = new URLSearchParams({ view: currentView });
-  if (fp) params.set('priority', fp);
   if (fs) params.set('status', fs);
-  if (fg) params.set('gtd', fg);
+  // Top-bar GTD/priority only apply when sidebar hasn't set the same filter
+  if (fp && !filterState.priority) params.set('priority', fp);
+  if (fg && !filterState.gtd)      params.set('gtd', fg);
 
-  // Handle group-specific views (group-<id>)
-  if (currentView.startsWith('group-')) {
-    params.set('view', 'all');
-    params.set('group_id', currentView.split('-')[1]);
-  }
+  // Archive
+  if (filterState.base === 'archive') params.set('archived', '1');
 
-  // No-project view: tasks with no project assigned
-  if (currentView === 'no-project') {
-    params.set('view', 'all');
+  // Sidebar GTD filter
+  if (filterState.gtd) params.set('gtd', GTD_KEY_MAP[filterState.gtd]);
+
+  // Sidebar priority filter
+  if (filterState.priority) params.set('priority', PRIO_KEY_MAP[filterState.priority]);
+
+  // Sidebar project filter
+  if (filterState.project === 'no-project') {
     params.set('no_project', '1');
-  }
-
-  // Archive view fetches only archived tasks
-  if (currentView === 'archive') {
-    params.set('view', 'all');
-    params.set('archived', '1');
+  } else if (filterState.project?.startsWith('group-')) {
+    params.set('group_id', filterState.project.split('-')[1]);
   }
 
   const res   = await fetch('/api/tasks?' + params);
@@ -549,7 +600,7 @@ function renderGrouped(tasks) {
   tasks.forEach(t => taskCache[t.id] = t);
 
   // Archive view: flat list, no grouping
-  if (currentView === 'archive') {
+  if (filterState.base === 'archive') {
     if (!tasks.length) {
       body.innerHTML = '<tr class="empty-row"><td colspan="10">Archive is empty.</td></tr>';
     } else {
@@ -559,8 +610,8 @@ function renderGrouped(tasks) {
     return;
   }
 
-  // Non-"all" views that already filter to one GTD/priority/project: flat list
-  const useSections = (currentView === 'all' || currentView.startsWith('group-') || currentView === 'no-project');
+  // Show GTD sections unless a GTD filter is already active (all tasks would be the same section)
+  const useSections = filterState.base === 'all' && !filterState.gtd;
   if (!useSections) {
     if (!tasks.length) {
       body.innerHTML = '<tr class="empty-row"><td colspan="10">No tasks here — add one above!</td></tr>';
@@ -676,7 +727,7 @@ async function addTask() {
   if (!name) return;
   input.value = '';
   const payload = { name };
-  if (currentView.startsWith('group-')) payload.group_id = parseInt(currentView.split('-')[1]);
+  if (filterState.project?.startsWith('group-')) payload.group_id = parseInt(filterState.project.split('-')[1]);
   await fetch('/api/tasks', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
   loadTasks();
 }
@@ -697,9 +748,8 @@ async function archiveCompleted() {
   }
   toast(`✅ ${data.count} task${data.count === 1 ? '' : 's'} archived.`);
   // Navigate to archive view
-  currentView = 'archive';
-  document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
-  document.querySelector('.sidebar-item[onclick*="archive"]')?.classList.add('active');
+  filterState = { base: 'archive', gtd: null, priority: null, project: null };
+  updateSidebarActive();
   await loadGroups();
   loadTasks();
 }
