@@ -56,6 +56,7 @@ def init_db():
                 url           TEXT DEFAULT "",
                 due           TEXT DEFAULT "",
                 done          INTEGER DEFAULT 0,
+                archived      INTEGER DEFAULT 0,
                 created_at    TEXT DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (owner_id)    REFERENCES users(id),
                 FOREIGN KEY (assignee_id) REFERENCES users(id)
@@ -96,6 +97,12 @@ def init_db():
 
         try:
             db.execute('ALTER TABLE tasks ADD COLUMN position INTEGER DEFAULT 0')
+            db.commit()
+        except sqlite3.OperationalError:
+            pass  # Column already exists
+
+        try:
+            db.execute('ALTER TABLE tasks ADD COLUMN archived INTEGER DEFAULT 0')
             db.commit()
         except sqlite3.OperationalError:
             pass  # Column already exists
@@ -189,11 +196,18 @@ def get_tasks():
     f_status  = request.args.get('status', '')
     f_gtd     = request.args.get('gtd', '')
     f_group   = request.args.get('group_id', '')
-    uid      = session['user_id']
+    archived  = request.args.get('archived', '0')
+    uid       = session['user_id']
 
     query  = 'SELECT t.*, u.username as assignee_name FROM tasks t LEFT JOIN users u ON t.assignee_id = u.id WHERE t.owner_id = ?'
-    # Note: group_id and position are included via t.*
+    # Note: group_id, position, archived are included via t.*
     params = [uid]
+
+    # Archive view shows only archived; main dashboard hides archived
+    if archived == '1':
+        query += ' AND t.archived = 1'
+    else:
+        query += ' AND (t.archived = 0 OR t.archived IS NULL)'
 
     view_filters = {
         'today':   ('t.gtd = ?', 'Today'),
@@ -246,7 +260,7 @@ def create_task():
 def update_task(task_id):
     data   = request.json
     uid    = session['user_id']
-    fields = ['name', 'status', 'priority', 'gtd', 'assignee_id', 'due', 'done', 'description', 'url', 'group_id', 'position']
+    fields = ['name', 'status', 'priority', 'gtd', 'assignee_id', 'due', 'done', 'description', 'url', 'group_id', 'position', 'archived']
     sets, params = [], []
 
     for f in fields:
@@ -339,19 +353,32 @@ def get_counts():
     with get_db() as db:
         rows = db.execute(
             '''SELECT
-                COUNT(*) as all_tasks,
-                SUM(gtd="Today")   as today,
-                SUM(gtd="Inbox")   as inbox,
-                SUM(gtd="Soon")    as soon,
-                SUM(gtd="Waiting") as waiting,
-                SUM(gtd="On Hold") as hold,
-                SUM(priority="High")   as high,
-                SUM(priority="Medium") as medium,
-                SUM(priority="Low")    as low
+                SUM(archived=0 OR archived IS NULL) as all_tasks,
+                SUM(gtd="Today"   AND (archived=0 OR archived IS NULL)) as today,
+                SUM(gtd="Inbox"   AND (archived=0 OR archived IS NULL)) as inbox,
+                SUM(gtd="Soon"    AND (archived=0 OR archived IS NULL)) as soon,
+                SUM(gtd="Waiting" AND (archived=0 OR archived IS NULL)) as waiting,
+                SUM(gtd="On Hold" AND (archived=0 OR archived IS NULL)) as hold,
+                SUM(priority="High"   AND (archived=0 OR archived IS NULL)) as high,
+                SUM(priority="Medium" AND (archived=0 OR archived IS NULL)) as medium,
+                SUM(priority="Low"    AND (archived=0 OR archived IS NULL)) as low,
+                SUM(archived=1) as archived
                FROM tasks WHERE owner_id = ?''',
             (uid,)
         ).fetchone()
     return jsonify(dict(rows))
+
+@app.route('/api/archive', methods=['POST'])
+@login_required
+def archive_completed():
+    uid = session['user_id']
+    with get_db() as db:
+        cur = db.execute(
+            "UPDATE tasks SET archived = 1 WHERE owner_id = ? AND status = 'Completed' AND (archived = 0 OR archived IS NULL)",
+            (uid,)
+        )
+        db.commit()
+    return jsonify({'ok': True, 'count': cur.rowcount})
 
 # ─────────────────────────────────────────────
 # PROJECT API
