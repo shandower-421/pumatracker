@@ -727,6 +727,8 @@ async function addTask() {
   if (!name) return;
   input.value = '';
   const payload = { name };
+  if (filterState.gtd)      payload.gtd      = GTD_KEY_MAP[filterState.gtd];
+  if (filterState.priority) payload.priority = PRIO_KEY_MAP[filterState.priority];
   if (filterState.project?.startsWith('group-')) payload.group_id = parseInt(filterState.project.split('-')[1]);
   await fetch('/api/tasks', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
   loadTasks();

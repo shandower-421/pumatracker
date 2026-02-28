@@ -256,12 +256,14 @@ def create_task():
     data     = request.json
     name     = (data.get('name') or '').strip()
     group_id = data.get('group_id')
+    gtd      = data.get('gtd', 'Inbox')
+    priority = data.get('priority', '')
     if not name:
         return jsonify({'error': 'Name required'}), 400
     with get_db() as db:
         cur = db.execute(
-            'INSERT INTO tasks (owner_id, name, priority, group_id) VALUES (?, ?, ?, ?)',
-            (session['user_id'], name, '', group_id)
+            'INSERT INTO tasks (owner_id, name, priority, gtd, group_id) VALUES (?, ?, ?, ?, ?)',
+            (session['user_id'], name, priority, gtd, group_id)
         )
         db.commit()
         task = db.execute(
