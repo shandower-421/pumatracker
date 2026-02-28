@@ -201,7 +201,11 @@ def get_tasks():
     archived  = request.args.get('archived', '0')
     uid       = session['user_id']
 
-    query  = 'SELECT t.*, u.username as assignee_name FROM tasks t LEFT JOIN users u ON t.assignee_id = u.id WHERE t.owner_id = ?'
+    query  = ('SELECT t.*, u.username as assignee_name, g.name as group_name '
+              'FROM tasks t '
+              'LEFT JOIN users u ON t.assignee_id = u.id '
+              'LEFT JOIN task_groups g ON t.group_id = g.id '
+              'WHERE t.owner_id = ?')
     # Note: group_id, position, archived are included via t.*
     params = [uid]
 
@@ -231,7 +235,13 @@ def get_tasks():
     if f_gtd:    query += ' AND t.gtd = ?';       params.append(f_gtd)
     if f_group:  query += ' AND t.group_id = ?';  params.append(int(f_group))
 
-    query += ' ORDER BY (t.group_id IS NULL) DESC, t.group_id, t.position, t.created_at DESC'
+    query += (" ORDER BY CASE t.gtd"
+              " WHEN 'Inbox' THEN 0"
+              " WHEN 'Today' THEN 1"
+              " WHEN 'Soon' THEN 2"
+              " WHEN 'Waiting' THEN 3"
+              " WHEN 'On Hold' THEN 4"
+              " ELSE 5 END, t.position, t.created_at DESC")
 
     with get_db() as db:
         tasks = db.execute(query, params).fetchall()
@@ -472,8 +482,8 @@ def reorder():
     with get_db() as db:
         for t in data.get('tasks', []):
             db.execute(
-                'UPDATE tasks SET group_id = ?, position = ? WHERE id = ? AND owner_id = ?',
-                (t.get('group_id'), t['position'], t['id'], uid)
+                'UPDATE tasks SET gtd = ?, position = ? WHERE id = ? AND owner_id = ?',
+                (t.get('gtd'), t['position'], t['id'], uid)
             )
         for g in data.get('groups', []):
             db.execute(
