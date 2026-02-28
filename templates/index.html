@@ -216,6 +216,21 @@ tr.drop-below td { box-shadow:inset 0 -2px 0 0 var(--accent); }
 /* Sidebar projects section */
 .sidebar-new-group-btn { display:flex; align-items:center; gap:8px; padding:8px 20px; font-size:.84rem; color:var(--accent); cursor:pointer; background:none; border:none; width:100%; font-family:'IBM Plex Sans',sans-serif; transition:background .12s; }
 .sidebar-new-group-btn:hover { background:var(--surface2); }
+/* Project item management */
+.sidebar-proj-item { padding-left:12px; }
+.sidebar-proj-handle { color:var(--text-faint); font-size:.55rem; opacity:0; cursor:grab; flex-shrink:0; transition:opacity .12s; line-height:1; letter-spacing:-.5px; }
+.sidebar-proj-item:hover .sidebar-proj-handle { opacity:.5; }
+.sidebar-proj-item:active .sidebar-proj-handle { cursor:grabbing; }
+.sidebar-proj-name { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.sidebar-proj-actions { display:flex; gap:1px; opacity:0; flex-shrink:0; transition:opacity .12s; }
+.sidebar-proj-item:hover .sidebar-proj-actions { opacity:1; }
+.sidebar-proj-btn { background:none; border:none; color:var(--text-faint); cursor:pointer; font-size:.72rem; padding:2px 5px; border-radius:3px; line-height:1; transition:color .12s, background .12s; }
+.sidebar-proj-btn:hover { color:var(--text); background:var(--surface2); }
+.sidebar-proj-btn.del:hover { color:var(--p-high) !important; background:rgba(217,48,37,.1); }
+.sidebar-rename-input { background:var(--surface2); border:1px solid var(--accent); border-radius:4px; color:var(--text); font-size:.84rem; padding:1px 5px; width:100%; min-width:0; font-family:inherit; outline:none; }
+.sidebar-item.sidebar-drop-above { box-shadow:0 -2px 0 0 var(--accent); }
+.sidebar-item.sidebar-drop-below { box-shadow:0 2px 0 0 var(--accent); }
+.sidebar-item.proj-dragging { opacity:.35; }
 </style>
 </head>
 <body>
@@ -506,14 +521,24 @@ async function loadGroups() {
 
 function renderSidebarGroups() {
   const el = document.getElementById('sidebarGroups');
-  el.innerHTML = groups.map(g => `
-    <div class="sidebar-item" id="sb-group-${g.id}"
+  el.innerHTML = [...groups].sort((a,b) => a.position - b.position).map(g => `
+    <div class="sidebar-item sidebar-proj-item" id="sb-group-${g.id}"
+         draggable="true"
+         ondragstart="onProjDragStart(event,${g.id})"
+         ondragover="onProjDragOver(event,${g.id})"
+         ondragleave="onProjDragLeave(event)"
+         ondrop="onProjDrop(event,${g.id})"
+         ondragend="onProjDragEnd(event)"
          onclick="toggleProjectFilter('group-${g.id}')">
-      <div class="sidebar-dot" style="background:var(--accent)"></div>
-      ${esc(g.name)}
+      <span class="sidebar-proj-handle" onclick="event.stopPropagation()">⠿⠿</span>
+      <div class="sidebar-dot" style="background:var(--accent);flex-shrink:0"></div>
+      <span class="sidebar-proj-name" id="sbpname-${g.id}">${esc(g.name)}</span>
       <span class="sidebar-count">${g.task_count ?? 0}</span>
+      <span class="sidebar-proj-actions">
+        <button class="sidebar-proj-btn" onclick="event.stopPropagation();renameSidebarProject(${g.id})" title="Rename">✎</button>
+        <button class="sidebar-proj-btn del" onclick="event.stopPropagation();deleteProject(${g.id})" title="Delete">✕</button>
+      </span>
     </div>`).join('');
-  // Re-apply active state in case a project is currently selected
   updateSidebarActive();
 }
 
@@ -802,10 +827,105 @@ function startProjectRename(groupId) {
 }
 
 async function deleteProject(groupId) {
-  if (!confirm('Delete this project? Tasks will move to Ungrouped.')) return;
+  if (!confirm('Delete this project? Tasks will move to No Project.')) return;
   const res = await fetch(`/api/projects/${groupId}`, { method: 'DELETE' });
-  if (res.ok) { toast('✅ Project deleted. Tasks moved to Ungrouped.'); await loadGroups(); loadTasks(); }
+  if (res.ok) { toast('✅ Project deleted.'); await loadGroups(); loadTasks(); }
   else toast('❌ Could not delete project.');
+}
+
+function renameSidebarProject(groupId) {
+  const nameEl = document.getElementById('sbpname-' + groupId);
+  if (!nameEl) return;
+  const oldName = nameEl.textContent;
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'sidebar-rename-input';
+  input.value = oldName;
+  nameEl.replaceWith(input);
+  input.focus(); input.select();
+  async function finish() {
+    const newName = input.value.trim() || oldName;
+    const newEl = document.createElement('span');
+    newEl.className = 'sidebar-proj-name';
+    newEl.id = 'sbpname-' + groupId;
+    newEl.textContent = newName;
+    input.replaceWith(newEl);
+    if (newName !== oldName) {
+      await fetch(`/api/projects/${groupId}`, {
+        method:'PATCH', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ name: newName })
+      });
+      await loadGroups();
+      loadTasks(); // refresh project column in task rows
+    }
+  }
+  input.addEventListener('blur', finish);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') input.blur();
+    if (e.key === 'Escape') { input.value = oldName; input.blur(); }
+  });
+}
+
+// ── SIDEBAR PROJECT DRAG-TO-REORDER ──
+let dragProjId = null;
+
+function onProjDragStart(e, groupId) {
+  dragProjId = groupId;
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', String(groupId));
+  setTimeout(() => document.getElementById(`sb-group-${groupId}`)?.classList.add('proj-dragging'), 0);
+}
+
+function onProjDragOver(e, groupId) {
+  if (!dragProjId || dragProjId === groupId) return;
+  e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+  clearSidebarDropIndicators();
+  const el = document.getElementById(`sb-group-${groupId}`);
+  if (!el) return;
+  const rect = el.getBoundingClientRect();
+  el.classList.add(e.clientY < rect.top + rect.height / 2 ? 'sidebar-drop-above' : 'sidebar-drop-below');
+}
+
+function onProjDragLeave(e) {
+  // Only clear if leaving the item entirely
+  if (!e.relatedTarget?.closest?.('.sidebar-proj-item')) clearSidebarDropIndicators();
+}
+
+function onProjDrop(e, targetGroupId) {
+  e.preventDefault();
+  if (!dragProjId || dragProjId === targetGroupId) { clearSidebarDropIndicators(); return; }
+  const el = document.getElementById(`sb-group-${targetGroupId}`);
+  const rect = el?.getBoundingClientRect();
+  const insertBefore = rect ? e.clientY < rect.top + rect.height / 2 : true;
+  clearSidebarDropIndicators();
+  applySidebarGroupReorder(dragProjId, targetGroupId, insertBefore);
+}
+
+function onProjDragEnd(e) {
+  document.getElementById(`sb-group-${dragProjId}`)?.classList.remove('proj-dragging');
+  dragProjId = null;
+  clearSidebarDropIndicators();
+}
+
+function clearSidebarDropIndicators() {
+  document.querySelectorAll('.sidebar-drop-above,.sidebar-drop-below')
+    .forEach(el => el.classList.remove('sidebar-drop-above','sidebar-drop-below'));
+}
+
+async function applySidebarGroupReorder(sourceId, targetId, insertBefore) {
+  let ordered = [...groups].sort((a,b) => a.position - b.position);
+  const srcIdx = ordered.findIndex(g => g.id === sourceId);
+  if (srcIdx === -1) return;
+  const [moved] = ordered.splice(srcIdx, 1);
+  const tgtIdx = ordered.findIndex(g => g.id === targetId);
+  if (tgtIdx === -1) ordered.push(moved);
+  else ordered.splice(insertBefore ? tgtIdx : tgtIdx + 1, 0, moved);
+  const groupUpdates = ordered.map((g, pos) => ({ id: g.id, position: pos }));
+  await fetch('/api/reorder', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ tasks: [], groups: groupUpdates })
+  });
+  await loadGroups();
 }
 
 // ── DRAG-AND-DROP: TASKS ──
