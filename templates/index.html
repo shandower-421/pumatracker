@@ -191,6 +191,10 @@ tr.drop-above td { box-shadow:inset 0 2px 0 0 var(--accent); }
 tr.drop-below td { box-shadow:inset 0 -2px 0 0 var(--accent); }
 .group-header-cell.drop-into { background:var(--accent-dim); border-bottom-color:var(--accent); }
 
+/* Empty project drop zone */
+.empty-project-row td { padding:10px 24px; color:var(--text-faint); font-size:.78rem; font-style:italic; border-bottom:1px solid var(--border); transition:background .12s, color .12s; }
+.empty-project-row.drop-into td { background:var(--accent-dim); color:var(--accent); border-color:var(--accent); }
+
 /* Sidebar projects section */
 .sidebar-new-group-btn { display:flex; align-items:center; gap:8px; padding:8px 20px; font-size:.84rem; color:var(--accent); cursor:pointer; background:none; border:none; width:100%; font-family:'IBM Plex Sans',sans-serif; transition:background .12s; }
 .sidebar-new-group-btn:hover { background:var(--surface2); }
@@ -495,11 +499,6 @@ function renderGrouped(tasks) {
   const body = document.getElementById('taskBody');
   tasks.forEach(t => taskCache[t.id] = t);
 
-  if (!tasks.length) {
-    body.innerHTML = '<tr class="empty-row"><td colspan="9">No tasks here — add one above!</td></tr>';
-    return;
-  }
-
   // Bucket tasks by group_id (null = ungrouped)
   const buckets = {};
   tasks.forEach(t => {
@@ -508,46 +507,56 @@ function renderGrouped(tasks) {
     buckets[key].push(t);
   });
 
-  // Build render order: ungrouped first, then named groups by position
+  // Build render order: ungrouped first, then ALL named projects by position
   const orderedGroups = [...groups].sort((a, b) => a.position - b.position);
-  const order = ['null', ...orderedGroups.map(g => String(g.id))];
 
   let html = '';
-  for (const key of order) {
-    const bucket = buckets[key];
-    if (!bucket || !bucket.length) continue;
 
-    if (key === 'null') {
-      // Ungrouped label row
-      html += `<tr class="ungrouped-header-row"><td colspan="9">Ungrouped</td></tr>`;
-    } else {
-      // Named group header row (draggable)
-      const g = groups.find(g => String(g.id) === key);
-      if (!g) continue;
-      html += `<tr class="group-header-row" data-group-id="${g.id}"
-        draggable="true"
-        ondragstart="onGroupDragStart(event,${g.id})"
-        ondragover="onAnyHeaderDragOver(event,${g.id})"
-        ondragleave="onGroupHeaderDragLeave(event)"
-        ondrop="onAnyHeaderDrop(event,${g.id})"
-        ondragend="onGroupDragEnd(event)">
-        <td colspan="9" style="padding:0;border:none;">
-          <div class="group-header-cell" data-group-id="${g.id}">
-            <span class="group-drag-handle">⠿⠿</span>
-            <span class="group-name-display" id="gname-${g.id}">${esc(g.name)}</span>
-            <span class="group-task-count">${bucket.length}</span>
-            <button class="group-del-btn" onclick="event.stopPropagation();startProjectRename(${g.id})" title="Rename">✎</button>
-            <button class="group-del-btn" onclick="event.stopPropagation();deleteProject(${g.id})" title="Delete">✕</button>
-          </div>
-        </td>
-      </tr>`;
-    }
-
-    // Task rows for this bucket
-    bucket.forEach(t => { html += taskRow(t); });
+  // Ungrouped section — only show if there are ungrouped tasks
+  const ungroupedBucket = buckets['null'] || [];
+  if (ungroupedBucket.length) {
+    html += `<tr class="ungrouped-header-row"><td colspan="9">Ungrouped</td></tr>`;
+    ungroupedBucket.forEach(t => { html += taskRow(t); });
   }
 
-  body.innerHTML = html;
+  // Named projects — always render, even if empty, so tasks can be dropped in
+  for (const g of orderedGroups) {
+    const bucket = buckets[g.id] || [];
+    html += `<tr class="group-header-row" data-group-id="${g.id}"
+      draggable="true"
+      ondragstart="onGroupDragStart(event,${g.id})"
+      ondragover="onAnyHeaderDragOver(event,${g.id})"
+      ondragleave="onGroupHeaderDragLeave(event)"
+      ondrop="onAnyHeaderDrop(event,${g.id})"
+      ondragend="onGroupDragEnd(event)">
+      <td colspan="9" style="padding:0;border:none;">
+        <div class="group-header-cell" data-group-id="${g.id}">
+          <span class="group-drag-handle">⠿⠿</span>
+          <span class="group-name-display" id="gname-${g.id}">${esc(g.name)}</span>
+          <span class="group-task-count">${bucket.length || ''}</span>
+          <button class="group-del-btn" onclick="event.stopPropagation();startProjectRename(${g.id})" title="Rename">✎</button>
+          <button class="group-del-btn" onclick="event.stopPropagation();deleteProject(${g.id})" title="Delete">✕</button>
+        </div>
+      </td>
+    </tr>`;
+    // Task rows (if any)
+    bucket.forEach(t => { html += taskRow(t); });
+    // Empty drop zone row so tasks can be dragged into an empty project
+    if (!bucket.length) {
+      html += `<tr class="empty-project-row" data-group-id="${g.id}"
+        ondragover="onEmptyProjectDragOver(event,${g.id})"
+        ondragleave="onEmptyProjectDragLeave(event)"
+        ondrop="onEmptyProjectDrop(event,${g.id})">
+        <td colspan="9">Drop tasks here</td>
+      </tr>`;
+    }
+  }
+
+  if (!html) {
+    body.innerHTML = '<tr class="empty-row"><td colspan="9">No tasks here — add one above!</td></tr>';
+  } else {
+    body.innerHTML = html;
+  }
 }
 
 function slug(s) { return s.replace(/ /g, '-'); }
@@ -752,6 +761,22 @@ function onAnyHeaderDrop(e, groupId) {
     const before = rect ? e.clientY < rect.top + rect.height / 2 : true;
     applyGroupReorder(dragGroupId, groupId, before);
   }
+}
+
+// Empty project drop zone handlers
+function onEmptyProjectDragOver(e, groupId) {
+  if (dragType !== 'task') return;
+  e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+  e.target.closest('tr.empty-project-row')?.classList.add('drop-into');
+}
+function onEmptyProjectDragLeave(e) {
+  e.target.closest('tr.empty-project-row')?.classList.remove('drop-into');
+}
+function onEmptyProjectDrop(e, groupId) {
+  e.preventDefault();
+  e.target.closest('tr.empty-project-row')?.classList.remove('drop-into');
+  if (dragType !== 'task') return;
+  applyTaskReorder(dragTaskId, groupId, null, false);
 }
 
 // ── DRAG-AND-DROP: GROUPS/PROJECTS ──
