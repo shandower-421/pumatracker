@@ -163,6 +163,30 @@ tbody tr { cursor:pointer; }
 ::-webkit-scrollbar { width:6px; height:6px; }
 ::-webkit-scrollbar-track { background:transparent; }
 ::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px; }
+
+/* ── GROUP HEADERS ── */
+.group-header-row td { padding:0; border-bottom:none; cursor:default; }
+.group-header-cell { display:flex; align-items:center; gap:10px; padding:9px 24px; background:var(--surface2); border-bottom:2px solid var(--border2); border-top:2px solid var(--border); user-select:none; cursor:grab; }
+.group-header-cell:active { cursor:grabbing; }
+.group-drag-handle { color:var(--text-faint); font-size:.78rem; letter-spacing:.5px; flex-shrink:0; }
+.group-name-display { flex:1; font-size:.78rem; font-weight:700; color:var(--text); letter-spacing:.1em; text-transform:uppercase; font-family:'IBM Plex Mono',monospace; }
+.group-task-count { font-size:.68rem; color:var(--text-faint); background:var(--bg); padding:2px 7px; border-radius:10px; font-family:'IBM Plex Mono',monospace; }
+.group-rename-input { flex:1; background:var(--surface); border:1px solid var(--accent); border-radius:4px; color:var(--text); font-family:'IBM Plex Mono',monospace; font-size:.78rem; font-weight:700; padding:2px 8px; outline:none; letter-spacing:.1em; text-transform:uppercase; min-width:100px; }
+.group-del-btn { background:none; border:none; color:var(--text-faint); cursor:pointer; font-size:.85rem; padding:3px 7px; border-radius:4px; transition:color .15s,background .15s; line-height:1; flex-shrink:0; }
+.group-del-btn:hover { color:var(--p-high); background:rgba(240,91,91,.1); }
+
+/* Ungrouped label row */
+.ungrouped-header-row td { padding:6px 24px; background:var(--bg); font-size:.65rem; letter-spacing:.12em; text-transform:uppercase; color:var(--text-faint); font-family:'IBM Plex Mono',monospace; border-bottom:1px solid var(--border); }
+
+/* Drag state indicators */
+tr.task-dragging { opacity:.35; }
+tr.drop-above td { box-shadow:inset 0 2px 0 0 var(--accent); }
+tr.drop-below td { box-shadow:inset 0 -2px 0 0 var(--accent); }
+.group-header-cell.drop-into { background:var(--accent-dim); border-bottom-color:var(--accent); }
+
+/* Sidebar groups section */
+.sidebar-new-group-btn { display:flex; align-items:center; gap:8px; padding:8px 20px; font-size:.84rem; color:var(--accent); cursor:pointer; background:none; border:none; width:100%; font-family:'IBM Plex Sans',sans-serif; transition:background .12s; }
+.sidebar-new-group-btn:hover { background:var(--surface2); }
 </style>
 </head>
 <body>
@@ -238,6 +262,10 @@ tbody tr { cursor:pointer; }
       <div class="sidebar-dot" style="background:var(--p-low)"></div>Low
       <span class="sidebar-count" id="cnt-low">—</span>
     </div>
+
+    <div class="sidebar-label" style="margin-top:8px">Groups</div>
+    <div id="sidebarGroups"></div>
+    <button class="sidebar-new-group-btn" onclick="createGroup()">＋ New Group</button>
   </div>
 
   <!-- CONTENT -->
@@ -357,6 +385,12 @@ let sendTaskId = null;
 let taskCache = {};
 let activePanelTaskId = null;
 
+// ── GROUP STATE ──
+let groups = [];          // [{id, name, position, task_count}]
+let dragType  = null;     // 'task' | 'group'
+let dragTaskId  = null;
+let dragGroupId = null;
+
 // ── TOAST ──
 function toast(msg, duration=2500) {
   const el = document.getElementById('toast');
@@ -373,6 +407,24 @@ function setView(view, el) {
   loadTasks();
 }
 
+// ── LOAD GROUPS ──
+async function loadGroups() {
+  const res = await fetch('/api/groups');
+  groups = await res.json();
+  renderSidebarGroups();
+}
+
+function renderSidebarGroups() {
+  const el = document.getElementById('sidebarGroups');
+  el.innerHTML = groups.map(g => `
+    <div class="sidebar-item" data-group-id="${g.id}"
+         onclick="setView('group-${g.id}',this)">
+      <div class="sidebar-dot" style="background:var(--accent)"></div>
+      ${esc(g.name)}
+      <span class="sidebar-count">${g.task_count ?? 0}</span>
+    </div>`).join('');
+}
+
 // ── LOAD TASKS ──
 async function loadTasks() {
   const fp = document.getElementById('filterPriority').value;
@@ -383,9 +435,15 @@ async function loadTasks() {
   if (fs) params.set('status', fs);
   if (fg) params.set('gtd', fg);
 
+  // Handle group-specific views (group-<id>)
+  if (currentView.startsWith('group-')) {
+    params.set('view', 'all');
+    params.set('group_id', currentView.split('-')[1]);
+  }
+
   const res   = await fetch('/api/tasks?' + params);
   const tasks = await res.json();
-  renderTable(tasks);
+  renderGrouped(tasks);
   loadCounts();
 }
 
@@ -400,29 +458,89 @@ async function loadCounts() {
   }
 }
 
-// ── RENDER TABLE ──
-function renderTable(tasks) {
+// ── TASK ROW HTML ──
+function taskRow(t) {
+  const done  = t.done ? 'done-row' : '';
+  const cbCls = t.done ? 'cb checked' : 'cb';
+  const gid   = t.group_id ?? 'null';
+  return `<tr class="task-row ${done}" data-id="${t.id}" data-group-id="${gid}" data-position="${t.position ?? 0}"
+    draggable="true"
+    ondragstart="onTaskDragStart(event,${t.id},${gid})"
+    ondragover="onTaskDragOver(event)"
+    ondragleave="onTaskDragLeave(event)"
+    ondrop="onTaskDrop(event)"
+    ondragend="onTaskDragEnd(event)"
+    onclick="handleRowClick(event,${t.id})">
+    <td><div class="${cbCls}" onclick="toggleDone(${t.id},${t.done?0:1})"></div></td>
+    <td><span class="task-name-text" onclick="event.stopPropagation();startRename(this,${t.id})">${esc(t.name)}</span></td>
+    <td>${pill('gtd', t.gtd, t.id, ['Inbox','Today','Soon','Waiting','On Hold'])}</td>
+    <td>${pill('status', t.status, t.id, ['Not Started','In Progress','Completed'])}</td>
+    <td>${pill('priority', t.priority, t.id, ['High','Medium','Low'])}</td>
+    <td><input class="assignee-input" list="userList" value="${esc(t.assignee_name||t.assignee_text||'')}" placeholder="—" onblur="patch(${t.id},{assignee:this.value})"/></td>
+    <td><input class="date-input" type="date" value="${t.due||''}" onchange="patch(${t.id},{due:this.value})"/></td>
+    <td><button class="send-btn" onclick="openSendModal(${t.id},'${esc(t.name)}')">↗ Send</button></td>
+    <td><button class="del-btn" onclick="deleteTask(${t.id})" title="Delete">✕</button></td>
+  </tr>`;
+}
+
+// ── RENDER GROUPED ──
+function renderGrouped(tasks) {
   const body = document.getElementById('taskBody');
+  tasks.forEach(t => taskCache[t.id] = t);
+
   if (!tasks.length) {
     body.innerHTML = '<tr class="empty-row"><td colspan="9">No tasks here — add one above!</td></tr>';
     return;
   }
-  tasks.forEach(t => taskCache[t.id] = t);
-  body.innerHTML = tasks.map(t => {
-    const done = t.done ? 'done-row' : '';
-    const cbCls = t.done ? 'cb checked' : 'cb';
-    return `<tr class="${done}" data-id="${t.id}" onclick="handleRowClick(event,${t.id})">
-      <td><div class="${cbCls}" onclick="toggleDone(${t.id},${t.done?0:1})"></div></td>
-      <td><span class="task-name-text" onclick="event.stopPropagation();startRename(this,${t.id})">${esc(t.name)}</span></td>
-      <td>${pill('gtd', t.gtd, t.id, ['Inbox','Today','Soon','Waiting','On Hold'])}</td>
-      <td>${pill('status', t.status, t.id, ['Not Started','In Progress','Completed'])}</td>
-      <td>${pill('priority', t.priority, t.id, ['High','Medium','Low'])}</td>
-      <td><input class="assignee-input" list="userList" value="${esc(t.assignee_name||t.assignee_text||'')}" placeholder="—" onblur="patch(${t.id},{assignee:this.value})"/></td>
-      <td><input class="date-input" type="date" value="${t.due||''}" onchange="patch(${t.id},{due:this.value})"/></td>
-      <td><button class="send-btn" onclick="openSendModal(${t.id},'${esc(t.name)}')">↗ Send</button></td>
-      <td><button class="del-btn" onclick="deleteTask(${t.id})" title="Delete">✕</button></td>
-    </tr>`;
-  }).join('');
+
+  // Bucket tasks by group_id (null = ungrouped)
+  const buckets = {};
+  tasks.forEach(t => {
+    const key = t.group_id ?? 'null';
+    if (!buckets[key]) buckets[key] = [];
+    buckets[key].push(t);
+  });
+
+  // Build render order: ungrouped first, then named groups by position
+  const orderedGroups = [...groups].sort((a, b) => a.position - b.position);
+  const order = ['null', ...orderedGroups.map(g => String(g.id))];
+
+  let html = '';
+  for (const key of order) {
+    const bucket = buckets[key];
+    if (!bucket || !bucket.length) continue;
+
+    if (key === 'null') {
+      // Ungrouped label row
+      html += `<tr class="ungrouped-header-row"><td colspan="9">Ungrouped</td></tr>`;
+    } else {
+      // Named group header row (draggable)
+      const g = groups.find(g => String(g.id) === key);
+      if (!g) continue;
+      html += `<tr class="group-header-row" data-group-id="${g.id}"
+        draggable="true"
+        ondragstart="onGroupDragStart(event,${g.id})"
+        ondragover="onAnyHeaderDragOver(event,${g.id})"
+        ondragleave="onGroupHeaderDragLeave(event)"
+        ondrop="onAnyHeaderDrop(event,${g.id})"
+        ondragend="onGroupDragEnd(event)">
+        <td colspan="9" style="padding:0;border:none;">
+          <div class="group-header-cell" data-group-id="${g.id}">
+            <span class="group-drag-handle">⠿⠿</span>
+            <span class="group-name-display" id="gname-${g.id}">${esc(g.name)}</span>
+            <span class="group-task-count">${bucket.length}</span>
+            <button class="group-del-btn" onclick="event.stopPropagation();startGroupRename(${g.id})" title="Rename">✎</button>
+            <button class="group-del-btn" onclick="event.stopPropagation();deleteGroup(${g.id})" title="Delete">✕</button>
+          </div>
+        </td>
+      </tr>`;
+    }
+
+    // Task rows for this bucket
+    bucket.forEach(t => { html += taskRow(t); });
+  }
+
+  body.innerHTML = html;
 }
 
 function slug(s) { return s.replace(/ /g, '-'); }
@@ -498,6 +616,212 @@ async function addTask() {
 
 async function deleteTask(id) {
   await fetch(`/api/tasks/${id}`, { method:'DELETE' });
+  loadTasks();
+}
+
+// ── GROUP CRUD ──
+async function createGroup() {
+  const name = prompt('Group name:');
+  if (!name || !name.trim()) return;
+  const res = await fetch('/api/groups', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ name: name.trim() })
+  });
+  if (res.ok) { toast('✅ Group created!'); await loadGroups(); loadTasks(); }
+  else toast('❌ Could not create group.');
+}
+
+function startGroupRename(groupId) {
+  const nameEl = document.getElementById('gname-' + groupId);
+  if (!nameEl) return;
+  const oldName = nameEl.textContent;
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'group-rename-input';
+  input.value = oldName;
+  nameEl.replaceWith(input);
+  input.focus(); input.select();
+
+  async function finish() {
+    const newName = input.value.trim() || oldName;
+    const newEl = document.createElement('span');
+    newEl.className = 'group-name-display';
+    newEl.id = 'gname-' + groupId;
+    newEl.textContent = newName;
+    input.replaceWith(newEl);
+    if (newName !== oldName) {
+      await fetch(`/api/groups/${groupId}`, {
+        method:'PATCH', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ name: newName })
+      });
+      await loadGroups();
+    }
+  }
+  input.addEventListener('blur', finish);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') input.blur();
+    if (e.key === 'Escape') { input.value = oldName; input.blur(); }
+  });
+}
+
+async function deleteGroup(groupId) {
+  if (!confirm('Delete this group? Tasks will move to Ungrouped.')) return;
+  const res = await fetch(`/api/groups/${groupId}`, { method: 'DELETE' });
+  if (res.ok) { toast('✅ Group deleted. Tasks moved to Ungrouped.'); await loadGroups(); loadTasks(); }
+  else toast('❌ Could not delete group.');
+}
+
+// ── DRAG-AND-DROP: TASKS ──
+function onTaskDragStart(e, taskId, groupId) {
+  dragType = 'task'; dragTaskId = taskId;
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', taskId);
+  setTimeout(() => e.target.closest('tr')?.classList.add('task-dragging'), 0);
+}
+
+function onTaskDragOver(e) {
+  if (dragType !== 'task') return;
+  e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+  clearDropIndicators();
+  const row = e.target.closest('tr.task-row');
+  if (!row) return;
+  const rect = row.getBoundingClientRect();
+  const mid  = rect.top + rect.height / 2;
+  row.classList.add(e.clientY < mid ? 'drop-above' : 'drop-below');
+}
+
+function onTaskDragLeave(e) {
+  if (!e.target.closest('tr')) clearDropIndicators();
+}
+
+function onTaskDrop(e) {
+  e.preventDefault();
+  if (dragType !== 'task') return;
+  const targetRow = e.target.closest('tr.task-row');
+  if (!targetRow) return;
+  const targetId  = parseInt(targetRow.dataset.id);
+  const targetGid = targetRow.dataset.groupId === 'null' ? null : parseInt(targetRow.dataset.groupId);
+  if (dragTaskId === targetId) { clearDropIndicators(); return; }
+
+  const rect = targetRow.getBoundingClientRect();
+  const insertBefore = e.clientY < rect.top + rect.height / 2;
+  applyTaskReorder(dragTaskId, targetGid, targetId, insertBefore);
+  clearDropIndicators();
+}
+
+function onTaskDragEnd(e) {
+  dragType = null; dragTaskId = null;
+  document.querySelectorAll('tr.task-dragging').forEach(r => r.classList.remove('task-dragging'));
+  clearDropIndicators();
+}
+
+// Drop onto a GROUP HEADER — handles both task drops (move to group) and group drops (reorder)
+function onAnyHeaderDragOver(e, groupId) {
+  if (!dragType) return;
+  e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+  clearDropIndicators();
+  if (dragType === 'task') {
+    e.target.closest('.group-header-cell')?.classList.add('drop-into');
+  } else if (dragType === 'group' && dragGroupId !== groupId) {
+    const row  = e.target.closest('tr.group-header-row');
+    const rect = row?.getBoundingClientRect();
+    if (rect) row.classList.add(e.clientY < rect.top + rect.height / 2 ? 'drop-above' : 'drop-below');
+  }
+}
+
+function onGroupHeaderDragLeave(e) {
+  e.target.closest('.group-header-cell')?.classList.remove('drop-into');
+  e.target.closest('tr.group-header-row')?.classList.remove('drop-above','drop-below');
+}
+
+function onAnyHeaderDrop(e, groupId) {
+  e.preventDefault();
+  clearDropIndicators();
+  if (dragType === 'task') {
+    applyTaskReorder(dragTaskId, groupId, null, false);
+  } else if (dragType === 'group' && dragGroupId !== groupId) {
+    const row  = e.target.closest('tr.group-header-row');
+    const rect = row?.getBoundingClientRect();
+    const before = rect ? e.clientY < rect.top + rect.height / 2 : true;
+    applyGroupReorder(dragGroupId, groupId, before);
+  }
+}
+
+// ── DRAG-AND-DROP: GROUPS ──
+function onGroupDragStart(e, groupId) {
+  dragType = 'group'; dragGroupId = groupId;
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', groupId);
+}
+
+function onGroupDragEnd(e) {
+  dragType = null; dragGroupId = null;
+  clearDropIndicators();
+}
+
+// ── REORDER HELPERS ──
+function clearDropIndicators() {
+  document.querySelectorAll('.drop-above,.drop-below,.drop-into').forEach(el => {
+    el.classList.remove('drop-above','drop-below','drop-into');
+  });
+}
+
+async function applyTaskReorder(taskId, newGroupId, targetTaskId, insertBefore) {
+  // Collect all task rows in DOM order for the target group
+  const selector = newGroupId === null
+    ? `tr.task-row[data-group-id="null"]`
+    : `tr.task-row[data-group-id="${newGroupId}"]`;
+  const rows = [...document.querySelectorAll(selector)];
+
+  // Build new ordered list of task IDs
+  let ids = rows.map(r => parseInt(r.dataset.id)).filter(id => id !== taskId);
+  if (targetTaskId === null) {
+    ids.push(taskId); // append at end
+  } else {
+    const idx = ids.indexOf(targetTaskId);
+    if (idx === -1) ids.push(taskId);
+    else ids.splice(insertBefore ? idx : idx + 1, 0, taskId);
+  }
+
+  // Also collect previous group if task moved groups
+  const movedTask = taskCache[taskId];
+  const oldGroupId = movedTask?.group_id ?? null;
+  let updates = ids.map((id, pos) => ({ id, group_id: newGroupId, position: pos }));
+
+  if (oldGroupId !== newGroupId && oldGroupId !== undefined) {
+    // Re-number old group
+    const oldSel = oldGroupId === null
+      ? `tr.task-row[data-group-id="null"]`
+      : `tr.task-row[data-group-id="${oldGroupId}"]`;
+    const oldIds = [...document.querySelectorAll(oldSel)]
+      .map(r => parseInt(r.dataset.id))
+      .filter(id => id !== taskId);
+    oldIds.forEach((id, pos) => updates.push({ id, group_id: oldGroupId, position: pos }));
+  }
+
+  await fetch('/api/reorder', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ tasks: updates, groups: [] })
+  });
+  await loadGroups();
+  loadTasks();
+}
+
+async function applyGroupReorder(sourceGroupId, targetGroupId, insertBefore) {
+  let ordered = [...groups].sort((a, b) => a.position - b.position);
+  const srcIdx = ordered.findIndex(g => g.id === sourceGroupId);
+  if (srcIdx === -1) return;
+  const [moved] = ordered.splice(srcIdx, 1);
+  const tgtIdx = ordered.findIndex(g => g.id === targetGroupId);
+  if (tgtIdx === -1) { ordered.push(moved); }
+  else ordered.splice(insertBefore ? tgtIdx : tgtIdx + 1, 0, moved);
+
+  const groupUpdates = ordered.map((g, pos) => ({ id: g.id, position: pos }));
+  await fetch('/api/reorder', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ tasks: [], groups: groupUpdates })
+  });
+  await loadGroups();
   loadTasks();
 }
 
@@ -619,6 +943,7 @@ document.addEventListener('keydown', e => { if(e.key==='Escape') closeTaskPanel(
 document.getElementById('sendModal').addEventListener('click', e => { if(e.target===e.currentTarget) closeModal(); });
 
 // Init
+loadGroups();
 loadTasks();
 </script>
 </body>

@@ -35,6 +35,14 @@ def init_db():
                 active   INTEGER DEFAULT 1
             );
 
+            CREATE TABLE IF NOT EXISTS task_groups (
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                owner_id   INTEGER NOT NULL,
+                name       TEXT NOT NULL,
+                position   INTEGER DEFAULT 0,
+                FOREIGN KEY (owner_id) REFERENCES users(id)
+            );
+
             CREATE TABLE IF NOT EXISTS tasks (
                 id            INTEGER PRIMARY KEY AUTOINCREMENT,
                 owner_id      INTEGER NOT NULL,
@@ -76,6 +84,18 @@ def init_db():
 
         try:
             db.execute('ALTER TABLE tasks ADD COLUMN url TEXT DEFAULT ""')
+            db.commit()
+        except sqlite3.OperationalError:
+            pass  # Column already exists
+
+        try:
+            db.execute('ALTER TABLE tasks ADD COLUMN group_id INTEGER DEFAULT NULL')
+            db.commit()
+        except sqlite3.OperationalError:
+            pass  # Column already exists
+
+        try:
+            db.execute('ALTER TABLE tasks ADD COLUMN position INTEGER DEFAULT 0')
             db.commit()
         except sqlite3.OperationalError:
             pass  # Column already exists
@@ -164,13 +184,15 @@ def index():
 @app.route('/api/tasks')
 @login_required
 def get_tasks():
-    view     = request.args.get('view', 'all')
-    f_prio   = request.args.get('priority', '')
-    f_status = request.args.get('status', '')
-    f_gtd    = request.args.get('gtd', '')
+    view      = request.args.get('view', 'all')
+    f_prio    = request.args.get('priority', '')
+    f_status  = request.args.get('status', '')
+    f_gtd     = request.args.get('gtd', '')
+    f_group   = request.args.get('group_id', '')
     uid      = session['user_id']
 
     query  = 'SELECT t.*, u.username as assignee_name FROM tasks t LEFT JOIN users u ON t.assignee_id = u.id WHERE t.owner_id = ?'
+    # Note: group_id and position are included via t.*
     params = [uid]
 
     view_filters = {
@@ -191,8 +213,9 @@ def get_tasks():
     if f_prio:   query += ' AND t.priority = ?';  params.append(f_prio)
     if f_status: query += ' AND t.status = ?';    params.append(f_status)
     if f_gtd:    query += ' AND t.gtd = ?';       params.append(f_gtd)
+    if f_group:  query += ' AND t.group_id = ?';  params.append(int(f_group))
 
-    query += ' ORDER BY t.created_at DESC'
+    query += ' ORDER BY (t.group_id IS NULL) DESC, t.group_id, t.position, t.created_at DESC'
 
     with get_db() as db:
         tasks = db.execute(query, params).fetchall()
@@ -223,7 +246,7 @@ def create_task():
 def update_task(task_id):
     data   = request.json
     uid    = session['user_id']
-    fields = ['name', 'status', 'priority', 'gtd', 'assignee_id', 'due', 'done', 'description', 'url']
+    fields = ['name', 'status', 'priority', 'gtd', 'assignee_id', 'due', 'done', 'description', 'url', 'group_id', 'position']
     sets, params = [], []
 
     for f in fields:
@@ -329,6 +352,107 @@ def get_counts():
             (uid,)
         ).fetchone()
     return jsonify(dict(rows))
+
+# ─────────────────────────────────────────────
+# GROUP API
+# ─────────────────────────────────────────────
+
+@app.route('/api/groups')
+@login_required
+def get_groups():
+    uid = session['user_id']
+    with get_db() as db:
+        rows = db.execute(
+            '''SELECT g.*, COUNT(t.id) as task_count
+               FROM task_groups g
+               LEFT JOIN tasks t ON t.group_id = g.id
+               WHERE g.owner_id = ?
+               GROUP BY g.id
+               ORDER BY g.position''',
+            (uid,)
+        ).fetchall()
+    return jsonify([dict(r) for r in rows])
+
+@app.route('/api/groups', methods=['POST'])
+@login_required
+def create_group():
+    uid  = session['user_id']
+    name = (request.json.get('name') or '').strip()
+    if not name:
+        return jsonify({'error': 'Name required'}), 400
+    with get_db() as db:
+        max_pos = db.execute(
+            'SELECT COALESCE(MAX(position), 0) FROM task_groups WHERE owner_id = ?', (uid,)
+        ).fetchone()[0]
+        cur = db.execute(
+            'INSERT INTO task_groups (owner_id, name, position) VALUES (?, ?, ?)',
+            (uid, name, max_pos + 1)
+        )
+        db.commit()
+        group = db.execute(
+            'SELECT *, 0 as task_count FROM task_groups WHERE id = ?', (cur.lastrowid,)
+        ).fetchone()
+    return jsonify(dict(group)), 201
+
+@app.route('/api/groups/<int:group_id>', methods=['PATCH'])
+@login_required
+def update_group(group_id):
+    uid  = session['user_id']
+    data = request.json
+    sets, params = [], []
+    if 'name' in data:
+        sets.append('name = ?'); params.append(data['name'].strip())
+    if 'position' in data:
+        sets.append('position = ?'); params.append(data['position'])
+    if not sets:
+        return jsonify({'error': 'Nothing to update'}), 400
+    params += [group_id, uid]
+    with get_db() as db:
+        db.execute(
+            f'UPDATE task_groups SET {", ".join(sets)} WHERE id = ? AND owner_id = ?', params
+        )
+        db.commit()
+        group = db.execute('SELECT * FROM task_groups WHERE id = ?', (group_id,)).fetchone()
+    if not group:
+        return jsonify({'error': 'Not found'}), 404
+    return jsonify(dict(group))
+
+@app.route('/api/groups/<int:group_id>', methods=['DELETE'])
+@login_required
+def delete_group(group_id):
+    uid = session['user_id']
+    with get_db() as db:
+        group = db.execute(
+            'SELECT * FROM task_groups WHERE id = ? AND owner_id = ?', (group_id, uid)
+        ).fetchone()
+        if not group:
+            return jsonify({'error': 'Not found'}), 404
+        # Move tasks to ungrouped instead of deleting them
+        db.execute(
+            'UPDATE tasks SET group_id = NULL WHERE group_id = ? AND owner_id = ?', (group_id, uid)
+        )
+        db.execute('DELETE FROM task_groups WHERE id = ? AND owner_id = ?', (group_id, uid))
+        db.commit()
+    return jsonify({'ok': True})
+
+@app.route('/api/reorder', methods=['POST'])
+@login_required
+def reorder():
+    uid  = session['user_id']
+    data = request.json
+    with get_db() as db:
+        for t in data.get('tasks', []):
+            db.execute(
+                'UPDATE tasks SET group_id = ?, position = ? WHERE id = ? AND owner_id = ?',
+                (t.get('group_id'), t['position'], t['id'], uid)
+            )
+        for g in data.get('groups', []):
+            db.execute(
+                'UPDATE task_groups SET position = ? WHERE id = ? AND owner_id = ?',
+                (g['position'], g['id'], uid)
+            )
+        db.commit()
+    return jsonify({'ok': True})
 
 # ─────────────────────────────────────────────
 # ADMIN ROUTES
