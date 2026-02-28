@@ -221,6 +221,7 @@ def get_tasks():
         'inbox':   ('t.gtd = ?', 'Inbox'),
         'soon':    ('t.gtd = ?', 'Soon'),
         'waiting': ('t.gtd = ?', 'Waiting'),
+        'someday': ('t.gtd = ?', 'Someday'),
         'hold':    ('t.gtd = ?', 'On Hold'),
         'high':    ('t.priority = ?', 'High'),
         'medium':  ('t.priority = ?', 'Medium'),
@@ -242,7 +243,8 @@ def get_tasks():
               " WHEN 'Today' THEN 1"
               " WHEN 'Soon' THEN 2"
               " WHEN 'Waiting' THEN 3"
-              " WHEN 'On Hold' THEN 4"
+              " WHEN 'Someday' THEN 4"
+              " WHEN 'On Hold' THEN 5"
               " ELSE 5 END, t.position, t.created_at DESC")
 
     with get_db() as db:
@@ -375,6 +377,7 @@ def get_counts():
                 SUM(gtd="Inbox"   AND (archived=0 OR archived IS NULL)) as inbox,
                 SUM(gtd="Soon"    AND (archived=0 OR archived IS NULL)) as soon,
                 SUM(gtd="Waiting" AND (archived=0 OR archived IS NULL)) as waiting,
+                SUM(gtd="Someday" AND (archived=0 OR archived IS NULL)) as someday,
                 SUM(gtd="On Hold" AND (archived=0 OR archived IS NULL)) as hold,
                 SUM(priority="High"   AND (archived=0 OR archived IS NULL)) as high,
                 SUM(priority="Medium" AND (archived=0 OR archived IS NULL)) as medium,

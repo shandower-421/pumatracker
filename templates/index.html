@@ -15,7 +15,7 @@
   --p-high:#f05b5b; --p-med:#f0b45b; --p-low:#5bf0a0;
   --s-todo:#f05b5b; --s-prog:#5bf0a0; --s-done:#5b8af0;
   --g-inbox:#e8eaf0; --g-today:#059669; --g-soon:#f0dc32;
-  --g-waiting:#f08c32; --g-hold:#f05b5b;
+  --g-waiting:#f08c32; --g-someday:#7c3aed; --g-hold:#f05b5b;
 }
 body { font-family:'IBM Plex Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; display:flex; flex-direction:column; }
 
@@ -100,6 +100,7 @@ td:first-child { padding-left:24px; }
 .gtd-Today    { background:#059669; color:#fff; }
 .gtd-Soon     { background:#ca8a04; color:#fff; }
 .gtd-Waiting  { background:#c2410c; color:#fff; }
+.gtd-Someday  { background:#7c3aed; color:#fff; }
 .gtd-On-Hold  { background:#dc2626; color:#fff; }
 
 /* Assignee */
@@ -122,6 +123,7 @@ td:first-child { padding-left:24px; }
 .gtd-section-Today   td { background:rgba(5,150,105,.1);  color:#059669; border-bottom-color:rgba(5,150,105,.3); }
 .gtd-section-Soon    td { background:rgba(202,138,4,.1);  color:#ca8a04; border-bottom-color:rgba(202,138,4,.3); }
 .gtd-section-Waiting td { background:rgba(194,65,12,.1);  color:#c2410c; border-bottom-color:rgba(194,65,12,.3); }
+.gtd-section-Someday td { background:rgba(124,58,237,.1); color:#7c3aed; border-bottom-color:rgba(124,58,237,.3); }
 .gtd-section-On-Hold td { background:rgba(220,38,38,.1);  color:#dc2626; border-bottom-color:rgba(220,38,38,.3); }
 .gtd-section-row.drop-into td { background:var(--accent-dim); color:var(--accent); border-bottom-color:var(--accent); }
 .project-cell { color:var(--text-dim); font-size:.78rem; max-width:90px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -290,6 +292,10 @@ tr.drop-below td { box-shadow:inset 0 -2px 0 0 var(--accent); }
       <div class="sidebar-dot" style="background:var(--g-waiting)"></div>Waiting
       <span class="sidebar-count" id="cnt-waiting">—</span>
     </div>
+    <div class="sidebar-item" id="sb-someday" onclick="toggleGtdFilter('someday')">
+      <div class="sidebar-dot" style="background:var(--g-someday)"></div>Someday
+      <span class="sidebar-count" id="cnt-someday">—</span>
+    </div>
     <div class="sidebar-item" id="sb-hold" onclick="toggleGtdFilter('hold')">
       <div class="sidebar-dot" style="background:var(--g-hold)"></div>On Hold
       <span class="sidebar-count" id="cnt-hold">—</span>
@@ -386,7 +392,7 @@ tr.drop-below td { box-shadow:inset 0 -2px 0 0 var(--accent); }
     <div class="panel-field">
       <label class="panel-label">GTD</label>
       <select class="panel-select" id="panelGtd" onchange="colorPanelSelect(this,'gtd')">
-        <option>Inbox</option><option>Today</option><option>Soon</option><option>Waiting</option><option>On Hold</option>
+        <option>Inbox</option><option>Today</option><option>Soon</option><option>Waiting</option><option>Someday</option><option>On Hold</option>
       </select>
     </div>
     <div class="panel-field">
@@ -551,7 +557,7 @@ function renderSidebarGroups() {
 }
 
 // ── LOAD TASKS ──
-const GTD_KEY_MAP = { inbox:'Inbox', today:'Today', soon:'Soon', waiting:'Waiting', hold:'On Hold' };
+const GTD_KEY_MAP = { inbox:'Inbox', today:'Today', soon:'Soon', waiting:'Waiting', someday:'Someday', hold:'On Hold' };
 const PRIO_KEY_MAP = { high:'High', medium:'Medium', low:'Low' };
 
 async function loadTasks() {
@@ -592,7 +598,7 @@ async function loadTasks() {
 async function loadCounts() {
   const res  = await fetch('/api/counts');
   const data = await res.json();
-  const map  = { all:'all_tasks', today:'today', inbox:'inbox', soon:'soon', waiting:'waiting', hold:'hold', high:'high', medium:'medium', low:'low', archive:'archived' };
+  const map  = { all:'all_tasks', today:'today', inbox:'inbox', soon:'soon', waiting:'waiting', someday:'someday', hold:'hold', high:'high', medium:'medium', low:'low', archive:'archived' };
   for (const [k,v] of Object.entries(map)) {
     const el = document.getElementById('cnt-' + k);
     if (el) el.textContent = data[v] ?? 0;
@@ -615,7 +621,7 @@ function taskRow(t) {
     oncontextmenu="openTaskContextMenu(event,${t.id},'${esc(t.name)}')">
     <td><div class="${cbCls}" onclick="toggleDone(${t.id},${t.done?0:1})"></div></td>
     <td><span class="task-name-text" onclick="event.stopPropagation();startRename(this,${t.id})">${esc(t.name)}</span></td>
-    <td>${pill('gtd', t.gtd, t.id, ['Inbox','Today','Soon','Waiting','On Hold'])}</td>
+    <td>${pill('gtd', t.gtd, t.id, ['Inbox','Today','Soon','Waiting','Someday','On Hold'])}</td>
     <td>${pill('status', t.status, t.id, ['Not Started','In Progress','Completed'])}</td>
     <td>${pill('priority', t.priority, t.id, ['','CRIT','High','Medium','Low','Info'])}</td>
     <td class="project-cell">${esc(t.group_name||'')}</td>
@@ -625,7 +631,7 @@ function taskRow(t) {
 }
 
 // ── RENDER GROUPED ──
-const GTD_ORDER = ['Inbox','Today','Soon','Waiting','On Hold'];
+const GTD_ORDER = ['Inbox','Today','Soon','Waiting','Someday','On Hold'];
 
 function renderGrouped(tasks) {
   const body = document.getElementById('taskBody');
@@ -1091,6 +1097,7 @@ const PANEL_COLORS = {
     'Today':   { bg:'#059669', color:'#fff', border:'1px solid #059669' },
     'Soon':    { bg:'#ca8a04', color:'#fff', border:'1px solid #ca8a04' },
     'Waiting': { bg:'#c2410c', color:'#fff', border:'1px solid #c2410c' },
+    'Someday': { bg:'#7c3aed', color:'#fff', border:'1px solid #7c3aed' },
     'On Hold': { bg:'#dc2626', color:'#fff', border:'1px solid #dc2626' },
   },
   priority: {
