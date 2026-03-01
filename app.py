@@ -136,6 +136,12 @@ def init_db():
         except sqlite3.OperationalError:
             pass  # Column already exists
 
+        try:
+            db.execute('ALTER TABLE tasks ADD COLUMN parent_id INTEGER DEFAULT NULL')
+            db.commit()
+        except sqlite3.OperationalError:
+            pass  # Column already exists
+
         # Migration: rename status values to new labels
         db.execute("UPDATE tasks SET status = 'Not Started' WHERE status = 'To Do'")
         db.execute("UPDATE tasks SET status = 'Completed'   WHERE status = 'Done'")
@@ -300,17 +306,18 @@ def get_tasks():
 @app.route('/api/tasks', methods=['POST'])
 @login_required
 def create_task():
-    data     = request.json
-    name     = (data.get('name') or '').strip()
-    group_id = data.get('group_id')
-    gtd      = data.get('gtd', 'Inbox')
-    priority = data.get('priority', '')
+    data      = request.json
+    name      = (data.get('name') or '').strip()
+    group_id  = data.get('group_id')
+    gtd       = data.get('gtd', 'Inbox')
+    priority  = data.get('priority', '')
+    parent_id = data.get('parent_id')
     if not name:
         return jsonify({'error': 'Name required'}), 400
     with get_db() as db:
         cur = db.execute(
-            'INSERT INTO tasks (owner_id, name, priority, gtd, group_id) VALUES (?, ?, ?, ?, ?)',
-            (session['user_id'], name, priority, gtd, group_id)
+            'INSERT INTO tasks (owner_id, name, priority, gtd, group_id, parent_id) VALUES (?, ?, ?, ?, ?, ?)',
+            (session['user_id'], name, priority, gtd, group_id, parent_id)
         )
         db.commit()
         task = db.execute(
@@ -324,7 +331,7 @@ def create_task():
 def update_task(task_id):
     data   = request.json
     uid    = session['user_id']
-    fields = ['name', 'status', 'priority', 'gtd', 'assignee_id', 'due', 'done', 'description', 'url', 'group_id', 'position', 'archived']
+    fields = ['name', 'status', 'priority', 'gtd', 'assignee_id', 'due', 'done', 'description', 'url', 'group_id', 'position', 'archived', 'parent_id']
     sets, params = [], []
 
     for f in fields:
