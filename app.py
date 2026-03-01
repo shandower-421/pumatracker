@@ -142,6 +142,19 @@ def init_db():
         except sqlite3.OperationalError:
             pass  # Column already exists
 
+        db.execute('''
+            CREATE TABLE IF NOT EXISTS task_notes (
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                task_id    INTEGER NOT NULL,
+                user_id    INTEGER NOT NULL,
+                body       TEXT NOT NULL,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (task_id) REFERENCES tasks(id),
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            );
+        ''')
+        db.commit()
+
         # Migration: rename status values to new labels
         db.execute("UPDATE tasks SET status = 'Not Started' WHERE status = 'To Do'")
         db.execute("UPDATE tasks SET status = 'Completed'   WHERE status = 'Done'")
@@ -552,6 +565,51 @@ def reorder():
             )
         db.commit()
     return jsonify({'ok': True})
+
+# ─────────────────────────────────────────────
+# TASK NOTES
+# ─────────────────────────────────────────────
+
+@app.route('/api/tasks/<int:task_id>/notes')
+@login_required
+def get_notes(task_id):
+    uid = session['user_id']
+    with get_db() as db:
+        # Ensure task belongs to current user
+        task = db.execute('SELECT id FROM tasks WHERE id = ? AND owner_id = ?', (task_id, uid)).fetchone()
+        if not task:
+            return jsonify({'error': 'Not found'}), 404
+        notes = db.execute(
+            '''SELECT n.id, n.body, n.created_at, u.username
+               FROM task_notes n JOIN users u ON n.user_id = u.id
+               WHERE n.task_id = ? ORDER BY n.created_at DESC''',
+            (task_id,)
+        ).fetchall()
+    return jsonify([dict(n) for n in notes])
+
+@app.route('/api/tasks/<int:task_id>/notes', methods=['POST'])
+@login_required
+def add_note(task_id):
+    uid  = session['user_id']
+    body = (request.json.get('body') or '').strip()
+    if not body:
+        return jsonify({'error': 'Body required'}), 400
+    with get_db() as db:
+        task = db.execute('SELECT id FROM tasks WHERE id = ? AND owner_id = ?', (task_id, uid)).fetchone()
+        if not task:
+            return jsonify({'error': 'Not found'}), 404
+        cur = db.execute(
+            'INSERT INTO task_notes (task_id, user_id, body) VALUES (?, ?, ?)',
+            (task_id, uid, body)
+        )
+        db.commit()
+        note = db.execute(
+            '''SELECT n.id, n.body, n.created_at, u.username
+               FROM task_notes n JOIN users u ON n.user_id = u.id
+               WHERE n.id = ?''',
+            (cur.lastrowid,)
+        ).fetchone()
+    return jsonify(dict(note)), 201
 
 # ─────────────────────────────────────────────
 # ADMIN ROUTES

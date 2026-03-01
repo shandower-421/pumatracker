@@ -70,6 +70,16 @@ tbody tr { border-bottom:1px solid var(--border); transition:background .1s; ani
 tbody tr:hover { background:var(--surface2); }
 tbody tr.done-row td { opacity:.4; }
 tbody tr.done-row .task-name { text-decoration:line-through; }
+/* Due date row highlights (skipped for done/archived tasks) */
+tbody tr.due-today:not(.done-row)         { background: rgba(217,119,6,0.08); }
+tbody tr.due-today:not(.done-row):hover   { background: rgba(217,119,6,0.15); }
+tbody tr.due-overdue:not(.done-row)       { background: rgba(220,38,38,0.08); }
+tbody tr.due-overdue:not(.done-row):hover { background: rgba(220,38,38,0.15); }
+tbody tr.due-today > td:first-child       { border-left: 3px solid #d97706; }
+tbody tr.due-overdue > td:first-child     { border-left: 3px solid #dc2626; }
+/* Keyboard navigation focus row */
+tbody tr.kb-focus,
+tbody tr.kb-focus:hover { background: color-mix(in srgb, var(--accent) 18%, var(--bg)) !important; }
 td { padding:10px 12px; font-size:.87rem; vertical-align:middle; }
 td:first-child { padding-left:24px; }
 
@@ -166,6 +176,18 @@ td:first-child { padding-left:24px; }
 .panel-btn-save:hover { opacity:.85; }
 .panel-btn-cancel { background:var(--surface2); color:var(--text-dim); border:1px solid var(--border2); border-radius:6px; padding:10px 16px; font-family:'IBM Plex Sans',sans-serif; font-size:.88rem; cursor:pointer; transition:background .15s; }
 .panel-btn-cancel:hover { background:var(--border2); }
+/* Task notes / comment log */
+.notes-section { display:flex; flex-direction:column; gap:10px; }
+.notes-section-label { font-size:.68rem; letter-spacing:.1em; text-transform:uppercase; color:var(--text-faint); font-family:'IBM Plex Mono',monospace; }
+.notes-compose { display:flex; flex-direction:column; gap:6px; }
+.notes-textarea { background:var(--surface2); border:1px solid var(--border2); color:var(--text); font-family:'IBM Plex Sans',sans-serif; font-size:.85rem; padding:8px 10px; border-radius:6px; outline:none; resize:none; min-height:64px; line-height:1.5; transition:border-color .15s; }
+.notes-textarea:focus { border-color:var(--accent); }
+.notes-add-btn { align-self:flex-end; background:var(--surface2); border:1px solid var(--border2); color:var(--text-dim); font-family:'IBM Plex Sans',sans-serif; font-size:.8rem; padding:5px 14px; border-radius:5px; cursor:pointer; transition:all .15s; }
+.notes-add-btn:hover { color:var(--text); border-color:var(--text-dim); }
+.notes-feed { display:flex; flex-direction:column; gap:8px; }
+.note-entry { border-left:2px solid var(--border2); padding:6px 0 6px 12px; }
+.note-meta { font-size:.72rem; color:var(--text-faint); font-family:'IBM Plex Mono',monospace; margin-bottom:4px; }
+.note-body { font-size:.85rem; color:var(--text-dim); line-height:1.5; white-space:pre-wrap; word-break:break-word; }
 tbody tr { cursor:pointer; }
 
 /* Send modal */
@@ -180,6 +202,9 @@ tbody tr { cursor:pointer; }
 .modal-btn.cancel { background:var(--surface2); color:var(--text-dim); }
 .modal-btn.confirm { background:var(--accent); color:#fff; }
 .modal-btn:hover { opacity:.85; }
+.modal-input { width:100%; background:var(--surface2); border:1px solid var(--border2); color:var(--text); font-family:'IBM Plex Sans',sans-serif; font-size:.9rem; padding:9px 12px; border-radius:6px; outline:none; margin-bottom:16px; box-sizing:border-box; }
+.modal-input:focus { border-color:var(--accent); }
+.modal-textarea { resize:vertical; min-height:90px; line-height:1.5; }
 
 ::-webkit-scrollbar { width:6px; height:6px; }
 ::-webkit-scrollbar-track { background:transparent; }
@@ -397,6 +422,32 @@ tr.subtask-row td:nth-child(2)::before {
   </div>
 </div>
 
+<!-- ADD SUBTASK MODAL -->
+<div class="modal-overlay" id="subtaskModal">
+  <div class="modal">
+    <h2>Add Subtask</h2>
+    <p id="subtaskModalDesc"></p>
+    <input class="modal-input" id="subtaskNameInput" type="text" placeholder="Subtask name…" maxlength="200"/>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="closeSubtaskModal()">Cancel</button>
+      <button class="modal-btn confirm" onclick="confirmAddSubtask()">Add</button>
+    </div>
+  </div>
+</div>
+
+<!-- QUICK NOTE MODAL -->
+<div class="modal-overlay" id="quickNoteModal">
+  <div class="modal">
+    <h2>Add Note</h2>
+    <p id="quickNoteModalDesc"></p>
+    <textarea class="modal-input modal-textarea" id="quickNoteInput" placeholder="Note…" rows="4"></textarea>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="closeQuickNoteModal()">Cancel</button>
+      <button class="modal-btn confirm" onclick="confirmQuickNote()">Add Note</button>
+    </div>
+  </div>
+</div>
+
 <!-- TASK DETAIL PANEL -->
 <div class="panel-overlay" id="panelOverlay" onclick="closeTaskPanel()" oncontextmenu="event.preventDefault()"></div>
 <div class="task-panel" id="taskPanel" oncontextmenu="event.preventDefault()">
@@ -454,6 +505,14 @@ tr.subtask-row td:nth-child(2)::before {
       <label class="panel-label">Description</label>
       <textarea class="panel-textarea" id="panelDescription" placeholder="Add notes, context, or details…"></textarea>
     </div>
+    <div class="panel-field notes-section">
+      <span class="notes-section-label">Notes</span>
+      <div class="notes-compose">
+        <textarea class="notes-textarea" id="noteInput" placeholder="Add a note…" rows="2"></textarea>
+        <button class="notes-add-btn" onclick="postTaskNote()">Add Note</button>
+      </div>
+      <div class="notes-feed" id="notesFeed"></div>
+    </div>
   </div>
   <div class="panel-foot">
     <button class="panel-btn-cancel" onclick="closeTaskPanel()">Cancel</button>
@@ -468,6 +527,7 @@ tr.subtask-row td:nth-child(2)::before {
 <div class="ctx-menu" id="taskCtxMenu" style="display:none">
   <div class="ctx-menu-item" onclick="ctxAddSubtask()"><span class="ctx-menu-icon">⤵</span> Add Subtask</div>
   <div class="ctx-menu-item" onclick="ctxSendTask()"><span class="ctx-menu-icon">↗</span> Send to User</div>
+  <div class="ctx-menu-item" onclick="ctxQuickNote()"><span class="ctx-menu-icon">✎</span> Add Note</div>
   <div class="ctx-menu-item danger" onclick="ctxDeleteTask()"><span class="ctx-menu-icon">✕</span> Delete</div>
 </div>
 
@@ -481,6 +541,7 @@ tr.subtask-row td:nth-child(2)::before {
 let sendTaskId = null;
 let taskCache = {};
 let activePanelTaskId = null;
+let focusedTaskId = null;
 
 // ── GROUP STATE ──
 let groups = [];          // [{id, name, position, task_count}]
@@ -636,6 +697,11 @@ function taskRow(t, depth = 0, hasSubtasks = false) {
   const gtd        = t.gtd || 'Inbox';
   const depthClass = depth > 0 ? 'subtask-row' : '';
   const isCollapsed = collapsedParents.has(t.id);
+  const _d = new Date();
+  const todayStr = `${_d.getFullYear()}-${String(_d.getMonth()+1).padStart(2,'0')}-${String(_d.getDate()).padStart(2,'0')}`;
+  const dueClass = (t.due && !t.done && !t.archived)
+    ? (t.due < todayStr ? 'due-overdue' : t.due === todayStr ? 'due-today' : '')
+    : '';
 
   let namePrefix = '';
   if (hasSubtasks) {
@@ -644,7 +710,7 @@ function taskRow(t, depth = 0, hasSubtasks = false) {
     namePrefix = `<span class="subtask-indicator">↳</span>`;
   }
 
-  return `<tr class="task-row ${depthClass} ${done}" data-id="${t.id}" data-gtd="${gtd}" data-position="${t.position ?? 0}" data-parent="${t.parent_id ?? ''}" data-depth="${depth}"
+  return `<tr class="task-row ${depthClass} ${done} ${dueClass}" data-id="${t.id}" data-gtd="${gtd}" data-position="${t.position ?? 0}" data-parent="${t.parent_id ?? ''}" data-depth="${depth}"
     draggable="true"
     ondragstart="onTaskDragStart(event,${t.id},'${gtd}')"
     ondragover="onTaskDragOver(event)"
@@ -772,6 +838,7 @@ function renderGrouped(tasks) {
     (buckets[gtdVal] || []).forEach(t => { html += renderTask(t, 0, children); });
   }
   body.innerHTML = html;
+  if (focusedTaskId != null) setKeyboardFocus(focusedTaskId);
 }
 
 function slug(s) { return s.replace(/ /g, '-'); }
@@ -809,7 +876,18 @@ function handleRowClick(e, taskId) {
   const tag = e.target.tagName.toLowerCase();
   if (['select','input','button','a'].includes(tag)) return;
   if (e.target.closest('.cb')) return;
+  setKeyboardFocus(taskId);
   openTaskPanel(taskCache[taskId]);
+}
+
+function setKeyboardFocus(id) {
+  document.querySelectorAll('tr.task-row.kb-focus').forEach(r => r.classList.remove('kb-focus'));
+  focusedTaskId = id;
+  if (id == null) return;
+  const row = document.querySelector(`tr.task-row[data-id="${id}"]`);
+  if (!row) return;
+  row.classList.add('kb-focus');
+  row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 }
 
 function pill(field, value, id, options) {
@@ -1121,9 +1199,20 @@ function onTaskDrop(e) {
     applyMakeSubtask(dragTaskId, targetId, targetGtd);
   } else {
     const insertBefore = pct < 0.5;
-    // Determine new parent based on where we're dropping relative to
+    // Determine new parent based on where we're dropping relative to.
+    // If the target row's parent IS the dragged task (e.g. dragging a parent below
+    // its own child), don't change the dragged task's parent — pass undefined to keep it.
     const targetParentId = targetRow.dataset.parent ? parseInt(targetRow.dataset.parent) : null;
-    applyTaskReorder(dragTaskId, targetGtd, targetId, insertBefore, targetParentId);
+    if (targetParentId === dragTaskId) {
+      // Self-referential: dragging parent below its own child — don't change parent
+      applyTaskReorder(dragTaskId, targetGtd, targetId, insertBefore, undefined);
+    } else if (hasChildren(dragTaskId) && targetParentId !== null) {
+      // Task-with-children dropped near a subtask: reorder relative to the subtask's
+      // parent row so the whole group moves correctly, keep dragged task top-level
+      applyTaskReorder(dragTaskId, targetGtd, targetParentId, insertBefore, undefined);
+    } else {
+      applyTaskReorder(dragTaskId, targetGtd, targetId, insertBefore, targetParentId);
+    }
   }
   clearDropIndicators();
 }
@@ -1194,9 +1283,9 @@ async function applyTaskReorder(taskId, newGtd, targetTaskId, insertBefore, newP
     body: JSON.stringify({ tasks: updates, groups: [] })
   });
 
-  // If parent is changing, update it via PATCH
+  // If parent is changing, update it via PATCH (guard against self-referential assignment)
   const resolvedParent = newParentId !== undefined ? newParentId : oldParent;
-  if (resolvedParent !== oldParent) {
+  if (resolvedParent !== oldParent && resolvedParent !== taskId) {
     await fetch(`/api/tasks/${taskId}`, {
       method: 'PATCH', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ parent_id: resolvedParent })
@@ -1272,6 +1361,8 @@ function openTaskPanel(task) {
   colorPanelSelect(document.getElementById('panelStatus'),   'status');
   colorPanelSelect(document.getElementById('panelPriority'), 'priority');
   updateUrlLink();
+  document.getElementById('noteInput').value = '';
+  loadTaskNotes(task.id);
   document.getElementById('panelOverlay').classList.add('open');
   document.getElementById('taskPanel').classList.add('open');
   document.getElementById('panelName').focus();
@@ -1292,6 +1383,7 @@ function closeTaskPanel() {
   document.getElementById('panelOverlay').classList.remove('open');
   document.getElementById('taskPanel').classList.remove('open');
   activePanelTaskId = null;
+  setKeyboardFocus(null);
 }
 
 async function saveTaskPanel() {
@@ -1354,7 +1446,7 @@ function ctxDeleteTask() {
   deleteTask(id);
 }
 
-async function ctxAddSubtask() {
+function ctxAddSubtask() {
   const parentId   = ctxTaskId;
   const parentTask = taskCache[parentId];
   closeTaskContextMenu();
@@ -1364,19 +1456,74 @@ async function ctxAddSubtask() {
     toast('Subtasks can only be one level deep.');
     return;
   }
-  const name = prompt('Subtask name:');
-  if (!name || !name.trim()) return;
+  openSubtaskModal(parentId, parentTask.name);
+}
+
+// ── SUBTASK MODAL ──
+let subtaskParentId = null;
+
+function openSubtaskModal(parentId, parentName) {
+  subtaskParentId = parentId;
+  document.getElementById('subtaskModalDesc').textContent = `Adding subtask to "${parentName}"`;
+  const input = document.getElementById('subtaskNameInput');
+  input.value = '';
+  document.getElementById('subtaskModal').classList.add('open');
+  input.focus();
+}
+
+function closeSubtaskModal() {
+  document.getElementById('subtaskModal').classList.remove('open');
+  subtaskParentId = null;
+}
+
+async function confirmAddSubtask() {
+  const name = document.getElementById('subtaskNameInput').value.trim();
+  if (!name) return;
+  const parentTask = taskCache[subtaskParentId];
   await fetch('/api/tasks', {
     method: 'POST', headers: {'Content-Type':'application/json'},
     body: JSON.stringify({
-      name:      name.trim(),
-      gtd:       parentTask.gtd || 'Inbox',
-      parent_id: parentId,
+      name,
+      gtd:      parentTask.gtd || 'Inbox',
+      parent_id: subtaskParentId,
       group_id:  parentTask.group_id ?? null
     })
   });
-  collapsedParents.delete(parentId); // ensure parent is expanded
+  collapsedParents.delete(subtaskParentId);
+  closeSubtaskModal();
   loadTasks();
+}
+
+// ── QUICK NOTE (from context menu) ──
+let quickNoteTaskId = null;
+
+function ctxQuickNote() {
+  const id   = ctxTaskId;
+  const task = taskCache[id];
+  closeTaskContextMenu();
+  if (!task) return;
+  quickNoteTaskId = id;
+  document.getElementById('quickNoteModalDesc').textContent = `"${task.name}"`;
+  const input = document.getElementById('quickNoteInput');
+  input.value = '';
+  document.getElementById('quickNoteModal').classList.add('open');
+  input.focus();
+}
+
+function closeQuickNoteModal() {
+  document.getElementById('quickNoteModal').classList.remove('open');
+  quickNoteTaskId = null;
+}
+
+async function confirmQuickNote() {
+  const body = document.getElementById('quickNoteInput').value.trim();
+  if (!body || !quickNoteTaskId) return;
+  await fetch(`/api/tasks/${quickNoteTaskId}/notes`, {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ body })
+  });
+  closeQuickNoteModal();
+  toast('✅ Note added.');
 }
 
 // Close task menu on outside click / Escape
@@ -1413,10 +1560,90 @@ async function confirmSend() {
 
 // Enter to add
 document.getElementById('newTask').addEventListener('keydown', e => { if(e.key==='Enter') addTask(); });
-// Escape to close panel
-document.addEventListener('keydown', e => { if(e.key==='Escape') closeTaskPanel(); });
-// Close modal on overlay click
+// Escape to close panel or subtask modal
+document.addEventListener('keydown', e => { if(e.key==='Escape') { closeTaskPanel(); closeSubtaskModal(); closeQuickNoteModal(); } });
+// Close modals on overlay click
 document.getElementById('sendModal').addEventListener('click', e => { if(e.target===e.currentTarget) closeModal(); });
+document.getElementById('subtaskModal').addEventListener('click', e => { if(e.target===e.currentTarget) closeSubtaskModal(); });
+document.getElementById('quickNoteModal').addEventListener('click', e => { if(e.target===e.currentTarget) closeQuickNoteModal(); });
+document.getElementById('subtaskNameInput').addEventListener('keydown', e => { if(e.key==='Enter') confirmAddSubtask(); });
+document.getElementById('quickNoteInput').addEventListener('keydown', e => { if(e.key==='Enter' && (e.ctrlKey || e.metaKey)) confirmQuickNote(); });
+
+// ── TASK NOTES ──
+async function loadTaskNotes(taskId) {
+  const feed = document.getElementById('notesFeed');
+  feed.innerHTML = '<div style="color:var(--text-faint);font-size:.8rem;padding:4px 0">Loading…</div>';
+  const resp = await fetch(`/api/tasks/${taskId}/notes`);
+  const notes = await resp.json();
+  if (!notes.length) {
+    feed.innerHTML = '';
+    return;
+  }
+  feed.innerHTML = notes.map(n => {
+    const d = new Date(n.created_at);
+    const dateStr = d.toLocaleDateString('en-US', { month:'short', day:'numeric' })
+      + ' · ' + d.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' });
+    return `<div class="note-entry">
+      <div class="note-meta">${dateStr} · ${esc(n.username)}</div>
+      <div class="note-body">${esc(n.body)}</div>
+    </div>`;
+  }).join('');
+}
+
+async function postTaskNote() {
+  const body = document.getElementById('noteInput').value.trim();
+  if (!body || !activePanelTaskId) return;
+  const btn = document.querySelector('.notes-add-btn');
+  btn.disabled = true;
+  await fetch(`/api/tasks/${activePanelTaskId}/notes`, {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ body })
+  });
+  document.getElementById('noteInput').value = '';
+  btn.disabled = false;
+  await loadTaskNotes(activePanelTaskId);
+}
+
+// Keyboard navigation (j/k/Enter/e)
+document.addEventListener('keydown', e => {
+  const tag = document.activeElement?.tagName?.toLowerCase();
+  if (['input','select','textarea','button'].includes(tag) || document.activeElement?.isContentEditable) return;
+  const modalOpen = document.getElementById('sendModal').classList.contains('open')
+    || document.getElementById('subtaskModal').classList.contains('open')
+    || document.getElementById('quickNoteModal').classList.contains('open');
+  if (activePanelTaskId || modalOpen) return;
+
+  const visibleRows = () => [...document.querySelectorAll('tr.task-row')].filter(r => r.offsetParent !== null);
+
+  if (e.key === 'j' || e.key === 'ArrowDown') {
+    e.preventDefault();
+    const rows = visibleRows();
+    if (!rows.length) return;
+    if (focusedTaskId == null) { setKeyboardFocus(parseInt(rows[0].dataset.id)); return; }
+    const idx = rows.findIndex(r => parseInt(r.dataset.id) === focusedTaskId);
+    if (idx < rows.length - 1) setKeyboardFocus(parseInt(rows[idx + 1].dataset.id));
+  } else if (e.key === 'k' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    const rows = visibleRows();
+    if (!rows.length) return;
+    if (focusedTaskId == null) { setKeyboardFocus(parseInt(rows[rows.length - 1].dataset.id)); return; }
+    const idx = rows.findIndex(r => parseInt(r.dataset.id) === focusedTaskId);
+    if (idx > 0) setKeyboardFocus(parseInt(rows[idx - 1].dataset.id));
+  } else if (e.key === 'Enter') {
+    if (focusedTaskId == null) return;
+    e.preventDefault();
+    const task = taskCache[focusedTaskId];
+    if (task) openTaskPanel(task);
+  } else if (e.key === 'e') {
+    if (focusedTaskId == null) return;
+    e.preventDefault();
+    const row = document.querySelector(`tr.task-row[data-id="${focusedTaskId}"]`);
+    const span = row?.querySelector('.task-name-text');
+    if (span) startRename(span, focusedTaskId);
+  } else if (e.key === 'Escape') {
+    setKeyboardFocus(null);
+  }
+});
 
 // Init
 loadGroups();
