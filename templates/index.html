@@ -70,6 +70,16 @@ tbody tr { border-bottom:1px solid var(--border); transition:background .1s; ani
 tbody tr:hover { background:var(--surface2); }
 tbody tr.done-row td { opacity:.4; }
 tbody tr.done-row .task-name { text-decoration:line-through; }
+/* Due date row highlights (skipped for done/archived tasks) */
+tbody tr.due-today:not(.done-row)         { background: rgba(217,119,6,0.08); }
+tbody tr.due-today:not(.done-row):hover   { background: rgba(217,119,6,0.15); }
+tbody tr.due-overdue:not(.done-row)       { background: rgba(220,38,38,0.08); }
+tbody tr.due-overdue:not(.done-row):hover { background: rgba(220,38,38,0.15); }
+tbody tr.due-today > td:first-child       { border-left: 3px solid #d97706; }
+tbody tr.due-overdue > td:first-child     { border-left: 3px solid #dc2626; }
+/* Keyboard navigation focus row */
+tbody tr.kb-focus,
+tbody tr.kb-focus:hover { background: color-mix(in srgb, var(--accent) 18%, var(--bg)) !important; }
 td { padding:10px 12px; font-size:.87rem; vertical-align:middle; }
 td:first-child { padding-left:24px; }
 
@@ -166,6 +176,18 @@ td:first-child { padding-left:24px; }
 .panel-btn-save:hover { opacity:.85; }
 .panel-btn-cancel { background:var(--surface2); color:var(--text-dim); border:1px solid var(--border2); border-radius:6px; padding:10px 16px; font-family:'IBM Plex Sans',sans-serif; font-size:.88rem; cursor:pointer; transition:background .15s; }
 .panel-btn-cancel:hover { background:var(--border2); }
+/* Task notes / comment log */
+.notes-section { display:flex; flex-direction:column; gap:10px; }
+.notes-section-label { font-size:.68rem; letter-spacing:.1em; text-transform:uppercase; color:var(--text-faint); font-family:'IBM Plex Mono',monospace; }
+.notes-compose { display:flex; flex-direction:column; gap:6px; }
+.notes-textarea { background:var(--surface2); border:1px solid var(--border2); color:var(--text); font-family:'IBM Plex Sans',sans-serif; font-size:.85rem; padding:8px 10px; border-radius:6px; outline:none; resize:none; min-height:64px; line-height:1.5; transition:border-color .15s; }
+.notes-textarea:focus { border-color:var(--accent); }
+.notes-add-btn { align-self:flex-end; background:var(--surface2); border:1px solid var(--border2); color:var(--text-dim); font-family:'IBM Plex Sans',sans-serif; font-size:.8rem; padding:5px 14px; border-radius:5px; cursor:pointer; transition:all .15s; }
+.notes-add-btn:hover { color:var(--text); border-color:var(--text-dim); }
+.notes-feed { display:flex; flex-direction:column; gap:8px; }
+.note-entry { border-left:2px solid var(--border2); padding:6px 0 6px 12px; }
+.note-meta { font-size:.72rem; color:var(--text-faint); font-family:'IBM Plex Mono',monospace; margin-bottom:4px; }
+.note-body { font-size:.85rem; color:var(--text-dim); line-height:1.5; white-space:pre-wrap; word-break:break-word; }
 tbody tr { cursor:pointer; }
 
 /* Send modal */
@@ -180,6 +202,9 @@ tbody tr { cursor:pointer; }
 .modal-btn.cancel { background:var(--surface2); color:var(--text-dim); }
 .modal-btn.confirm { background:var(--accent); color:#fff; }
 .modal-btn:hover { opacity:.85; }
+.modal-input { width:100%; background:var(--surface2); border:1px solid var(--border2); color:var(--text); font-family:'IBM Plex Sans',sans-serif; font-size:.9rem; padding:9px 12px; border-radius:6px; outline:none; margin-bottom:16px; box-sizing:border-box; }
+.modal-input:focus { border-color:var(--accent); }
+.modal-textarea { resize:vertical; min-height:90px; line-height:1.5; }
 
 ::-webkit-scrollbar { width:6px; height:6px; }
 ::-webkit-scrollbar-track { background:transparent; }
@@ -210,7 +235,26 @@ tr.task-dragging { opacity:.25; }
 tr.project-dragging td { opacity:.4; }
 tr.drop-above td { box-shadow:inset 0 2px 0 0 var(--accent); }
 tr.drop-below td { box-shadow:inset 0 -2px 0 0 var(--accent); }
+tr.drop-child td { box-shadow:inset 0 0 0 2px var(--accent); background:var(--accent-dim); }
 .group-header-cell.drop-into { background:var(--accent-dim); border-bottom-color:var(--accent); }
+
+/* ── SUBTASK STYLES ── */
+tr.subtask-row { background:color-mix(in srgb, var(--surface2) 55%, var(--bg)); }
+tr.subtask-row:hover { background:var(--surface2); }
+tr.subtask-row td:nth-child(2) { padding-left:30px; position:relative; }
+tr.subtask-row td:nth-child(2)::before {
+  content:''; position:absolute; left:12px; top:0; bottom:0; width:1px;
+  background:var(--border2);
+}
+.subtask-indicator { color:var(--text-faint); margin-right:5px; font-size:.8rem; vertical-align:middle; }
+.expand-toggle {
+  display:inline-flex; align-items:center; justify-content:center;
+  width:14px; height:14px; margin-right:5px;
+  font-size:.55rem; color:var(--text-dim); cursor:pointer;
+  border-radius:3px; border:1px solid var(--border2);
+  user-select:none; vertical-align:middle; flex-shrink:0;
+}
+.expand-toggle:hover { background:var(--border2); color:var(--text); }
 
 /* Empty project drop zone */
 .empty-project-row td { padding:10px 24px; color:var(--text-faint); font-size:.78rem; font-style:italic; border-bottom:1px solid var(--border); transition:background .12s, color .12s; }
@@ -378,6 +422,32 @@ tr.drop-below td { box-shadow:inset 0 -2px 0 0 var(--accent); }
   </div>
 </div>
 
+<!-- ADD SUBTASK MODAL -->
+<div class="modal-overlay" id="subtaskModal">
+  <div class="modal">
+    <h2>Add Subtask</h2>
+    <p id="subtaskModalDesc"></p>
+    <input class="modal-input" id="subtaskNameInput" type="text" placeholder="Subtask name…" maxlength="200"/>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="closeSubtaskModal()">Cancel</button>
+      <button class="modal-btn confirm" onclick="confirmAddSubtask()">Add</button>
+    </div>
+  </div>
+</div>
+
+<!-- QUICK NOTE MODAL -->
+<div class="modal-overlay" id="quickNoteModal">
+  <div class="modal">
+    <h2>Add Note</h2>
+    <p id="quickNoteModalDesc"></p>
+    <textarea class="modal-input modal-textarea" id="quickNoteInput" placeholder="Note…" rows="4"></textarea>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="closeQuickNoteModal()">Cancel</button>
+      <button class="modal-btn confirm" onclick="confirmQuickNote()">Add Note</button>
+    </div>
+  </div>
+</div>
+
 <!-- TASK DETAIL PANEL -->
 <div class="panel-overlay" id="panelOverlay" onclick="closeTaskPanel()" oncontextmenu="event.preventDefault()"></div>
 <div class="task-panel" id="taskPanel" oncontextmenu="event.preventDefault()">
@@ -435,6 +505,14 @@ tr.drop-below td { box-shadow:inset 0 -2px 0 0 var(--accent); }
       <label class="panel-label">Description</label>
       <textarea class="panel-textarea" id="panelDescription" placeholder="Add notes, context, or details…"></textarea>
     </div>
+    <div class="panel-field notes-section">
+      <span class="notes-section-label">Notes</span>
+      <div class="notes-compose">
+        <textarea class="notes-textarea" id="noteInput" placeholder="Add a note…" rows="2"></textarea>
+        <button class="notes-add-btn" onclick="postTaskNote()">Add Note</button>
+      </div>
+      <div class="notes-feed" id="notesFeed"></div>
+    </div>
   </div>
   <div class="panel-foot">
     <button class="panel-btn-cancel" onclick="closeTaskPanel()">Cancel</button>
@@ -447,7 +525,9 @@ tr.drop-below td { box-shadow:inset 0 -2px 0 0 var(--accent); }
 
 <!-- TASK CONTEXT MENU -->
 <div class="ctx-menu" id="taskCtxMenu" style="display:none">
+  <div class="ctx-menu-item" onclick="ctxAddSubtask()"><span class="ctx-menu-icon">⤵</span> Add Subtask</div>
   <div class="ctx-menu-item" onclick="ctxSendTask()"><span class="ctx-menu-icon">↗</span> Send to User</div>
+  <div class="ctx-menu-item" onclick="ctxQuickNote()"><span class="ctx-menu-icon">✎</span> Add Note</div>
   <div class="ctx-menu-item danger" onclick="ctxDeleteTask()"><span class="ctx-menu-icon">✕</span> Delete</div>
 </div>
 
@@ -461,12 +541,16 @@ tr.drop-below td { box-shadow:inset 0 -2px 0 0 var(--accent); }
 let sendTaskId = null;
 let taskCache = {};
 let activePanelTaskId = null;
+let focusedTaskId = null;
 
 // ── GROUP STATE ──
 let groups = [];          // [{id, name, position, task_count}]
 let dragType   = null;    // 'task'
 let dragTaskId = null;
 let dragTaskGtd = null;
+
+// ── SUBTASK STATE ──
+const collapsedParents = new Set(); // task IDs whose subtasks are collapsed
 
 // ── FILTER STATE ──
 // base: 'all' | 'archive'
@@ -607,11 +691,26 @@ async function loadCounts() {
 }
 
 // ── TASK ROW HTML ──
-function taskRow(t) {
-  const done  = (t.done && !t.archived) ? 'done-row' : '';
-  const cbCls = t.done ? 'cb checked' : 'cb';
-  const gtd   = t.gtd || 'Inbox';
-  return `<tr class="task-row ${done}" data-id="${t.id}" data-gtd="${gtd}" data-position="${t.position ?? 0}"
+function taskRow(t, depth = 0, hasSubtasks = false) {
+  const done       = (t.done && !t.archived) ? 'done-row' : '';
+  const cbCls      = t.done ? 'cb checked' : 'cb';
+  const gtd        = t.gtd || 'Inbox';
+  const depthClass = depth > 0 ? 'subtask-row' : '';
+  const isCollapsed = collapsedParents.has(t.id);
+  const _d = new Date();
+  const todayStr = `${_d.getFullYear()}-${String(_d.getMonth()+1).padStart(2,'0')}-${String(_d.getDate()).padStart(2,'0')}`;
+  const dueClass = (t.due && !t.done && !t.archived)
+    ? (t.due < todayStr ? 'due-overdue' : t.due === todayStr ? 'due-today' : '')
+    : '';
+
+  let namePrefix = '';
+  if (hasSubtasks) {
+    namePrefix = `<span class="expand-toggle" onclick="event.stopPropagation();toggleExpand(${t.id})">${isCollapsed ? '▶' : '▼'}</span>`;
+  } else if (depth > 0) {
+    namePrefix = `<span class="subtask-indicator">↳</span>`;
+  }
+
+  return `<tr class="task-row ${depthClass} ${done} ${dueClass}" data-id="${t.id}" data-gtd="${gtd}" data-position="${t.position ?? 0}" data-parent="${t.parent_id ?? ''}" data-depth="${depth}"
     draggable="true"
     ondragstart="onTaskDragStart(event,${t.id},'${gtd}')"
     ondragover="onTaskDragOver(event)"
@@ -621,7 +720,7 @@ function taskRow(t) {
     onclick="handleRowClick(event,${t.id})"
     oncontextmenu="openTaskContextMenu(event,${t.id},'${esc(t.name)}')">
     <td><div class="${cbCls}" onclick="toggleDone(${t.id},${t.done?0:1})"></div></td>
-    <td><span class="task-name-text" onclick="event.stopPropagation();startRename(this,${t.id})">${esc(t.name)}</span></td>
+    <td>${namePrefix}<span class="task-name-text" onclick="event.stopPropagation();startRename(this,${t.id})">${esc(t.name)}</span></td>
     <td>${pill('gtd', t.gtd, t.id, ['Inbox','Today','Soon','Waiting','Someday','On Hold'])}</td>
     <td>${pill('status', t.status, t.id, ['Not Started','In Progress','Completed'])}</td>
     <td>${pill('priority', t.priority, t.id, ['','CRIT','High','Medium','Low','Info'])}</td>
@@ -631,6 +730,53 @@ function taskRow(t) {
   </tr>`;
 }
 
+// ── SUBTASK TREE HELPERS ──
+function buildTree(tasks) {
+  const byId = {};
+  tasks.forEach(t => { byId[t.id] = t; });
+  const children = {};
+  const roots = [];
+  tasks.forEach(t => {
+    if (t.parent_id && byId[t.parent_id]) {
+      if (!children[t.parent_id]) children[t.parent_id] = [];
+      children[t.parent_id].push(t);
+    } else {
+      roots.push(t);
+    }
+  });
+  return { roots, children };
+}
+
+function renderTask(t, depth, children) {
+  const subs = children[t.id] || [];
+  let html = taskRow(t, depth, subs.length > 0);
+  if (subs.length > 0 && !collapsedParents.has(t.id)) {
+    subs.forEach(child => { html += renderTask(child, depth + 1, children); });
+  }
+  return html;
+}
+
+function toggleExpand(taskId) {
+  if (collapsedParents.has(taskId)) collapsedParents.delete(taskId);
+  else collapsedParents.add(taskId);
+  loadTasks();
+}
+
+// Returns true if potentialDescendant is inside potentialAncestor's subtree (in taskCache)
+function isDescendant(ancestorId, potentialDescendantId) {
+  let cur = taskCache[potentialDescendantId];
+  while (cur && cur.parent_id) {
+    if (cur.parent_id === ancestorId) return true;
+    cur = taskCache[cur.parent_id];
+  }
+  return false;
+}
+
+// Returns true if task has any subtasks in taskCache
+function hasChildren(taskId) {
+  return Object.values(taskCache).some(t => t.parent_id === taskId);
+}
+
 // ── RENDER GROUPED ──
 const GTD_ORDER = ['Inbox','Today','Soon','Waiting','Someday','On Hold'];
 
@@ -638,13 +784,15 @@ function renderGrouped(tasks) {
   const body = document.getElementById('taskBody');
   tasks.forEach(t => taskCache[t.id] = t);
 
+  const { roots, children } = buildTree(tasks);
+
   // Archive view: flat list, no grouping
   if (filterState.base === 'archive') {
     if (!tasks.length) {
       body.innerHTML = '<tr class="empty-row"><td colspan="8">Archive is empty.</td></tr>';
     } else {
       body.innerHTML = `<tr class="archive-header-row"><td colspan="8">Archive — Completed Tasks</td></tr>`
-        + tasks.map(taskRow).join('');
+        + roots.map(t => renderTask(t, 0, children)).join('');
     }
     return;
   }
@@ -655,14 +803,14 @@ function renderGrouped(tasks) {
     if (!tasks.length) {
       body.innerHTML = '<tr class="empty-row"><td colspan="8">No tasks here — add one above!</td></tr>';
     } else {
-      body.innerHTML = tasks.map(taskRow).join('');
+      body.innerHTML = roots.map(t => renderTask(t, 0, children)).join('');
     }
     return;
   }
 
-  // Bucket tasks by GTD value
+  // Bucket roots by GTD value (subtasks follow their parent's section)
   const buckets = {};
-  tasks.forEach(t => {
+  roots.forEach(t => {
     const key = t.gtd || 'Inbox';
     if (!buckets[key]) buckets[key] = [];
     buckets[key].push(t);
@@ -687,9 +835,10 @@ function renderGrouped(tasks) {
       ondrop="onGtdHeaderDrop(event,'${gtdVal}')">
       <td colspan="8">${gtdVal}</td>
     </tr>`;
-    (buckets[gtdVal] || []).forEach(t => { html += taskRow(t); });
+    (buckets[gtdVal] || []).forEach(t => { html += renderTask(t, 0, children); });
   }
   body.innerHTML = html;
+  if (focusedTaskId != null) setKeyboardFocus(focusedTaskId);
 }
 
 function slug(s) { return s.replace(/ /g, '-'); }
@@ -727,7 +876,18 @@ function handleRowClick(e, taskId) {
   const tag = e.target.tagName.toLowerCase();
   if (['select','input','button','a'].includes(tag)) return;
   if (e.target.closest('.cb')) return;
+  setKeyboardFocus(taskId);
   openTaskPanel(taskCache[taskId]);
+}
+
+function setKeyboardFocus(id) {
+  document.querySelectorAll('tr.task-row.kb-focus').forEach(r => r.classList.remove('kb-focus'));
+  focusedTaskId = id;
+  if (id == null) return;
+  const row = document.querySelector(`tr.task-row[data-id="${id}"]`);
+  if (!row) return;
+  row.classList.add('kb-focus');
+  row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 }
 
 function pill(field, value, id, options) {
@@ -997,9 +1157,24 @@ function onTaskDragOver(e) {
   clearDropIndicators();
   const row = e.target.closest('tr.task-row');
   if (!row) return;
+  const targetId = parseInt(row.dataset.id);
   const rect = row.getBoundingClientRect();
-  const mid  = rect.top + rect.height / 2;
-  row.classList.add(e.clientY < mid ? 'drop-above' : 'drop-below');
+  const pct  = (e.clientY - rect.top) / rect.height;
+
+  if (pct < 0.28) {
+    row.classList.add('drop-above');
+  } else if (pct > 0.72) {
+    row.classList.add('drop-below');
+  } else {
+    // Middle zone — nest as subtask (only if valid: not self, no circular, target has no parent i.e. is top-level)
+    const targetDepth = parseInt(row.dataset.depth || '0');
+    if (targetId !== dragTaskId && targetDepth === 0 && !isDescendant(dragTaskId, targetId) && !hasChildren(dragTaskId)) {
+      row.classList.add('drop-child');
+    } else {
+      // Fall back to above/below if nesting not allowed
+      row.classList.add(pct < 0.5 ? 'drop-above' : 'drop-below');
+    }
+  }
 }
 
 function onTaskDragLeave(e) {
@@ -1011,13 +1186,34 @@ function onTaskDrop(e) {
   if (dragType !== 'task') return;
   const targetRow = e.target.closest('tr.task-row');
   if (!targetRow) return;
-  const targetId  = parseInt(targetRow.dataset.id);
-  const targetGtd = targetRow.dataset.gtd || 'Inbox';
+  const targetId    = parseInt(targetRow.dataset.id);
+  const targetGtd   = targetRow.dataset.gtd || 'Inbox';
+  const targetDepth = parseInt(targetRow.dataset.depth || '0');
   if (dragTaskId === targetId) { clearDropIndicators(); return; }
 
   const rect = targetRow.getBoundingClientRect();
-  const insertBefore = e.clientY < rect.top + rect.height / 2;
-  applyTaskReorder(dragTaskId, targetGtd, targetId, insertBefore);
+  const pct  = (e.clientY - rect.top) / rect.height;
+
+  if (pct >= 0.28 && pct <= 0.72 && targetDepth === 0 && !isDescendant(dragTaskId, targetId) && !hasChildren(dragTaskId)) {
+    // Drop into center → make subtask
+    applyMakeSubtask(dragTaskId, targetId, targetGtd);
+  } else {
+    const insertBefore = pct < 0.5;
+    // Determine new parent based on where we're dropping relative to.
+    // If the target row's parent IS the dragged task (e.g. dragging a parent below
+    // its own child), don't change the dragged task's parent — pass undefined to keep it.
+    const targetParentId = targetRow.dataset.parent ? parseInt(targetRow.dataset.parent) : null;
+    if (targetParentId === dragTaskId) {
+      // Self-referential: dragging parent below its own child — don't change parent
+      applyTaskReorder(dragTaskId, targetGtd, targetId, insertBefore, undefined);
+    } else if (hasChildren(dragTaskId) && targetParentId !== null) {
+      // Task-with-children dropped near a subtask: reorder relative to the subtask's
+      // parent row so the whole group moves correctly, keep dragged task top-level
+      applyTaskReorder(dragTaskId, targetGtd, targetParentId, insertBefore, undefined);
+    } else {
+      applyTaskReorder(dragTaskId, targetGtd, targetId, insertBefore, targetParentId);
+    }
+  }
   clearDropIndicators();
 }
 
@@ -1043,17 +1239,19 @@ function onGtdHeaderDrop(e, gtdVal) {
   e.preventDefault();
   clearDropIndicators();
   if (dragType !== 'task') return;
-  applyTaskReorder(dragTaskId, gtdVal, null, false);
+  // null parent → drop as top-level task in that GTD section
+  applyTaskReorder(dragTaskId, gtdVal, null, false, null);
 }
 
 // ── REORDER HELPERS ──
 function clearDropIndicators() {
-  document.querySelectorAll('.drop-above,.drop-below,.drop-into').forEach(el => {
-    el.classList.remove('drop-above','drop-below','drop-into');
+  document.querySelectorAll('.drop-above,.drop-below,.drop-into,.drop-child').forEach(el => {
+    el.classList.remove('drop-above','drop-below','drop-into','drop-child');
   });
 }
 
-async function applyTaskReorder(taskId, newGtd, targetTaskId, insertBefore) {
+// newParentId: undefined = keep existing parent, null = make top-level, number = set new parent
+async function applyTaskReorder(taskId, newGtd, targetTaskId, insertBefore, newParentId = undefined) {
   // Collect all task rows in DOM order for the target GTD section
   const rows = [...document.querySelectorAll(`tr.task-row[data-gtd="${newGtd}"]`)];
 
@@ -1069,7 +1267,8 @@ async function applyTaskReorder(taskId, newGtd, targetTaskId, insertBefore) {
 
   // Also re-number old GTD section if task moved sections
   const movedTask = taskCache[taskId];
-  const oldGtd = movedTask?.gtd || 'Inbox';
+  const oldGtd    = movedTask?.gtd || 'Inbox';
+  const oldParent = movedTask?.parent_id ?? null;
   let updates = ids.map((id, pos) => ({ id, gtd: newGtd, position: pos }));
 
   if (oldGtd !== newGtd) {
@@ -1083,6 +1282,27 @@ async function applyTaskReorder(taskId, newGtd, targetTaskId, insertBefore) {
     method: 'POST', headers: {'Content-Type':'application/json'},
     body: JSON.stringify({ tasks: updates, groups: [] })
   });
+
+  // If parent is changing, update it via PATCH (guard against self-referential assignment)
+  const resolvedParent = newParentId !== undefined ? newParentId : oldParent;
+  if (resolvedParent !== oldParent && resolvedParent !== taskId) {
+    await fetch(`/api/tasks/${taskId}`, {
+      method: 'PATCH', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ parent_id: resolvedParent })
+    });
+  }
+
+  loadTasks();
+}
+
+async function applyMakeSubtask(taskId, parentId, parentGtd) {
+  if (isDescendant(taskId, parentId)) return; // safety: no circular
+  // Move the task to the same GTD as parent and set parent_id
+  await fetch(`/api/tasks/${taskId}`, {
+    method: 'PATCH', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ parent_id: parentId, gtd: parentGtd })
+  });
+  collapsedParents.delete(parentId); // ensure parent is expanded to show new child
   loadTasks();
 }
 
@@ -1141,6 +1361,8 @@ function openTaskPanel(task) {
   colorPanelSelect(document.getElementById('panelStatus'),   'status');
   colorPanelSelect(document.getElementById('panelPriority'), 'priority');
   updateUrlLink();
+  document.getElementById('noteInput').value = '';
+  loadTaskNotes(task.id);
   document.getElementById('panelOverlay').classList.add('open');
   document.getElementById('taskPanel').classList.add('open');
   document.getElementById('panelName').focus();
@@ -1161,6 +1383,7 @@ function closeTaskPanel() {
   document.getElementById('panelOverlay').classList.remove('open');
   document.getElementById('taskPanel').classList.remove('open');
   activePanelTaskId = null;
+  setKeyboardFocus(null);
 }
 
 async function saveTaskPanel() {
@@ -1223,6 +1446,86 @@ function ctxDeleteTask() {
   deleteTask(id);
 }
 
+function ctxAddSubtask() {
+  const parentId   = ctxTaskId;
+  const parentTask = taskCache[parentId];
+  closeTaskContextMenu();
+  if (!parentTask) return;
+  // Can't add subtask to a task that is already a subtask (one level only)
+  if (parentTask.parent_id) {
+    toast('Subtasks can only be one level deep.');
+    return;
+  }
+  openSubtaskModal(parentId, parentTask.name);
+}
+
+// ── SUBTASK MODAL ──
+let subtaskParentId = null;
+
+function openSubtaskModal(parentId, parentName) {
+  subtaskParentId = parentId;
+  document.getElementById('subtaskModalDesc').textContent = `Adding subtask to "${parentName}"`;
+  const input = document.getElementById('subtaskNameInput');
+  input.value = '';
+  document.getElementById('subtaskModal').classList.add('open');
+  input.focus();
+}
+
+function closeSubtaskModal() {
+  document.getElementById('subtaskModal').classList.remove('open');
+  subtaskParentId = null;
+}
+
+async function confirmAddSubtask() {
+  const name = document.getElementById('subtaskNameInput').value.trim();
+  if (!name) return;
+  const parentTask = taskCache[subtaskParentId];
+  await fetch('/api/tasks', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      name,
+      gtd:      parentTask.gtd || 'Inbox',
+      parent_id: subtaskParentId,
+      group_id:  parentTask.group_id ?? null
+    })
+  });
+  collapsedParents.delete(subtaskParentId);
+  closeSubtaskModal();
+  loadTasks();
+}
+
+// ── QUICK NOTE (from context menu) ──
+let quickNoteTaskId = null;
+
+function ctxQuickNote() {
+  const id   = ctxTaskId;
+  const task = taskCache[id];
+  closeTaskContextMenu();
+  if (!task) return;
+  quickNoteTaskId = id;
+  document.getElementById('quickNoteModalDesc').textContent = `"${task.name}"`;
+  const input = document.getElementById('quickNoteInput');
+  input.value = '';
+  document.getElementById('quickNoteModal').classList.add('open');
+  input.focus();
+}
+
+function closeQuickNoteModal() {
+  document.getElementById('quickNoteModal').classList.remove('open');
+  quickNoteTaskId = null;
+}
+
+async function confirmQuickNote() {
+  const body = document.getElementById('quickNoteInput').value.trim();
+  if (!body || !quickNoteTaskId) return;
+  await fetch(`/api/tasks/${quickNoteTaskId}/notes`, {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ body })
+  });
+  closeQuickNoteModal();
+  toast('✅ Note added.');
+}
+
 // Close task menu on outside click / Escape
 document.addEventListener('click', e => {
   if (!e.target.closest('#taskCtxMenu')) closeTaskContextMenu();
@@ -1257,10 +1560,90 @@ async function confirmSend() {
 
 // Enter to add
 document.getElementById('newTask').addEventListener('keydown', e => { if(e.key==='Enter') addTask(); });
-// Escape to close panel
-document.addEventListener('keydown', e => { if(e.key==='Escape') closeTaskPanel(); });
-// Close modal on overlay click
+// Escape to close panel or subtask modal
+document.addEventListener('keydown', e => { if(e.key==='Escape') { closeTaskPanel(); closeSubtaskModal(); closeQuickNoteModal(); } });
+// Close modals on overlay click
 document.getElementById('sendModal').addEventListener('click', e => { if(e.target===e.currentTarget) closeModal(); });
+document.getElementById('subtaskModal').addEventListener('click', e => { if(e.target===e.currentTarget) closeSubtaskModal(); });
+document.getElementById('quickNoteModal').addEventListener('click', e => { if(e.target===e.currentTarget) closeQuickNoteModal(); });
+document.getElementById('subtaskNameInput').addEventListener('keydown', e => { if(e.key==='Enter') confirmAddSubtask(); });
+document.getElementById('quickNoteInput').addEventListener('keydown', e => { if(e.key==='Enter' && (e.ctrlKey || e.metaKey)) confirmQuickNote(); });
+
+// ── TASK NOTES ──
+async function loadTaskNotes(taskId) {
+  const feed = document.getElementById('notesFeed');
+  feed.innerHTML = '<div style="color:var(--text-faint);font-size:.8rem;padding:4px 0">Loading…</div>';
+  const resp = await fetch(`/api/tasks/${taskId}/notes`);
+  const notes = await resp.json();
+  if (!notes.length) {
+    feed.innerHTML = '';
+    return;
+  }
+  feed.innerHTML = notes.map(n => {
+    const d = new Date(n.created_at);
+    const dateStr = d.toLocaleDateString('en-US', { month:'short', day:'numeric' })
+      + ' · ' + d.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' });
+    return `<div class="note-entry">
+      <div class="note-meta">${dateStr} · ${esc(n.username)}</div>
+      <div class="note-body">${esc(n.body)}</div>
+    </div>`;
+  }).join('');
+}
+
+async function postTaskNote() {
+  const body = document.getElementById('noteInput').value.trim();
+  if (!body || !activePanelTaskId) return;
+  const btn = document.querySelector('.notes-add-btn');
+  btn.disabled = true;
+  await fetch(`/api/tasks/${activePanelTaskId}/notes`, {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ body })
+  });
+  document.getElementById('noteInput').value = '';
+  btn.disabled = false;
+  await loadTaskNotes(activePanelTaskId);
+}
+
+// Keyboard navigation (j/k/Enter/e)
+document.addEventListener('keydown', e => {
+  const tag = document.activeElement?.tagName?.toLowerCase();
+  if (['input','select','textarea','button'].includes(tag) || document.activeElement?.isContentEditable) return;
+  const modalOpen = document.getElementById('sendModal').classList.contains('open')
+    || document.getElementById('subtaskModal').classList.contains('open')
+    || document.getElementById('quickNoteModal').classList.contains('open');
+  if (activePanelTaskId || modalOpen) return;
+
+  const visibleRows = () => [...document.querySelectorAll('tr.task-row')].filter(r => r.offsetParent !== null);
+
+  if (e.key === 'j' || e.key === 'ArrowDown') {
+    e.preventDefault();
+    const rows = visibleRows();
+    if (!rows.length) return;
+    if (focusedTaskId == null) { setKeyboardFocus(parseInt(rows[0].dataset.id)); return; }
+    const idx = rows.findIndex(r => parseInt(r.dataset.id) === focusedTaskId);
+    if (idx < rows.length - 1) setKeyboardFocus(parseInt(rows[idx + 1].dataset.id));
+  } else if (e.key === 'k' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    const rows = visibleRows();
+    if (!rows.length) return;
+    if (focusedTaskId == null) { setKeyboardFocus(parseInt(rows[rows.length - 1].dataset.id)); return; }
+    const idx = rows.findIndex(r => parseInt(r.dataset.id) === focusedTaskId);
+    if (idx > 0) setKeyboardFocus(parseInt(rows[idx - 1].dataset.id));
+  } else if (e.key === 'Enter') {
+    if (focusedTaskId == null) return;
+    e.preventDefault();
+    const task = taskCache[focusedTaskId];
+    if (task) openTaskPanel(task);
+  } else if (e.key === 'e') {
+    if (focusedTaskId == null) return;
+    e.preventDefault();
+    const row = document.querySelector(`tr.task-row[data-id="${focusedTaskId}"]`);
+    const span = row?.querySelector('.task-name-text');
+    if (span) startRename(span, focusedTaskId);
+  } else if (e.key === 'Escape') {
+    setKeyboardFocus(null);
+  }
+});
 
 // Init
 loadGroups();
