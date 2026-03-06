@@ -8,8 +8,8 @@ Then open http://localhost:8080 in your browser (or whichever port you chose).
 
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
 from werkzeug.security import generate_password_hash, check_password_hash
-import sqlite3, os, functools, argparse, json, secrets
-from datetime import datetime
+import sqlite3, os, functools, argparse, json, secrets, calendar
+from datetime import datetime, date, timedelta
 
 app = Flask(__name__)
 
@@ -138,6 +138,12 @@ def init_db():
 
         try:
             db.execute('ALTER TABLE tasks ADD COLUMN parent_id INTEGER DEFAULT NULL')
+            db.commit()
+        except sqlite3.OperationalError:
+            pass  # Column already exists
+
+        try:
+            db.execute("ALTER TABLE tasks ADD COLUMN recurrence TEXT DEFAULT ''")
             db.commit()
         except sqlite3.OperationalError:
             pass  # Column already exists
@@ -344,7 +350,7 @@ def create_task():
 def update_task(task_id):
     data   = request.json
     uid    = session['user_id']
-    fields = ['name', 'status', 'priority', 'gtd', 'assignee_id', 'due', 'done', 'description', 'url', 'group_id', 'position', 'archived', 'parent_id']
+    fields = ['name', 'status', 'priority', 'gtd', 'assignee_id', 'due', 'done', 'description', 'url', 'group_id', 'position', 'archived', 'parent_id', 'recurrence']
     sets, params = [], []
 
     for f in fields:
@@ -388,6 +394,41 @@ def update_task(task_id):
         ).fetchone()
     if not task:
         return jsonify({'error': 'Not found'}), 404
+
+    # Spawn next occurrence when a recurring task is completed
+    if data.get('status') == 'Completed' and task['recurrence']:
+        rec = task['recurrence']
+        due_str = task['due'] or ''
+        try:
+            d = datetime.strptime(due_str, '%Y-%m-%d').date() if due_str else date.today()
+        except ValueError:
+            d = date.today()
+        if rec == 'daily':
+            next_due = d + timedelta(days=1)
+        elif rec == 'weekly':
+            next_due = d + timedelta(weeks=1)
+        elif rec == 'monthly':
+            month = d.month % 12 + 1
+            year  = d.year + (1 if d.month == 12 else 0)
+            day   = min(d.day, calendar.monthrange(year, month)[1])
+            next_due = d.replace(year=year, month=month, day=day)
+        elif rec == 'yearly':
+            try:
+                next_due = d.replace(year=d.year + 1)
+            except ValueError:
+                next_due = d + timedelta(days=365)
+        else:
+            next_due = None
+        if next_due:
+            with get_db() as db2:
+                db2.execute(
+                    'INSERT INTO tasks (owner_id, name, priority, gtd, group_id, parent_id, recurrence, due) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                    (uid, task['name'], task['priority'] or '', task['gtd'] or 'Inbox',
+                     task['group_id'], task['parent_id'], rec, next_due.isoformat())
+                )
+                db2.commit()
+            return jsonify({**dict(task), 'recurrence_spawned': True})
+
     return jsonify(dict(task))
 
 @app.route('/api/tasks/<int:task_id>', methods=['DELETE'])
