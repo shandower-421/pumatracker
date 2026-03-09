@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; font-src data:; connect-src 'self'; object-src 'none'; base-uri 'self';">
 <title>PumaPager</title>
 <style>
 /* cyrillic-ext */
@@ -1155,7 +1156,7 @@ function taskRow(t, depth = 0, hasSubtasks = false) {
     onclick="handleRowClick(event,${t.id})"
     oncontextmenu="openTaskContextMenu(event,${t.id},'${esc(t.name)}')">
     <td><div class="${cbCls}" onclick="toggleDone(${t.id},${t.done?0:1})"></div></td>
-    <td>${namePrefix}<span class="task-name-text" onclick="event.stopPropagation();startRename(this,${t.id})">${esc(t.name)}</span>${t.recurrence ? `<span class="recur-badge" title="Repeats ${t.recurrence}">↻</span>` : ''}</td>
+    <td>${namePrefix}<span class="task-name-text" onclick="event.stopPropagation();startRename(this,${t.id})">${esc(t.name)}</span>${t.recurrence ? `<span class="recur-badge" title="Repeats ${esc(t.recurrence)}">↻</span>` : ''}</td>
     <td>${pill('gtd', t.gtd, t.id, ['Inbox','Today','Soon','Waiting','Someday','On Hold'])}</td>
     <td>${pill('status', t.status, t.id, ['Not Started','In Progress','Completed'])}</td>
     <td>${pill('priority', t.priority, t.id, ['','CRIT','High','Medium','Low','Info'])}</td>
@@ -1308,7 +1309,9 @@ function setKeyboardFocus(id) {
   row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 }
 
+const PILL_FIELDS = new Set(['gtd','status','priority']);
 function pill(field, value, id, options) {
+  if (!PILL_FIELDS.has(field)) return '';
   const opts = options.map(o =>
     `<option value="${esc(o)}"${o===value?' selected':''}>${esc(o)}</option>`
   ).join('');
@@ -1318,7 +1321,7 @@ function pill(field, value, id, options) {
 function applyPill(el, field) { el.className = `pill-select ${pillSlug(field, el.value)}`; }
 
 function esc(s) {
-  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
 // ── API CALLS ──
@@ -1672,11 +1675,15 @@ function openTaskPanel(task) {
   document.getElementById('panelName').focus();
 }
 
+function isSafeUrl(url) {
+  try { return /^https?:$/i.test(new URL(url).protocol); } catch { return false; }
+}
+
 function updateUrlLink() {
   const url  = document.getElementById('panelUrl').value.trim();
   const link = document.getElementById('panelUrlLink');
-  if (url) { link.href = url; link.style.display = 'flex'; }
-  else      { link.style.display = 'none'; }
+  if (url && isSafeUrl(url)) { link.href = url; link.style.display = 'flex'; }
+  else                        { link.style.display = 'none'; }
 }
 
 function closeTaskPanel() {
@@ -1874,16 +1881,54 @@ function exportData() {
   toast('✅ Data exported.');
 }
 
+function sanitizeImport(data) {
+  const VALID_GTD        = new Set(['Inbox','Today','Soon','Waiting','Someday','On Hold']);
+  const VALID_STATUS     = new Set(['Not Started','In Progress','Completed']);
+  const VALID_PRIORITY   = new Set(['','CRIT','High','Medium','Low','Info']);
+  const VALID_RECURRENCE = new Set(['','daily','weekly','monthly','yearly']);
+  const tasks = data.tasks.map(t => ({
+    id:            parseInt(t.id)       || 0,
+    name:          String(t.name        || '').slice(0, 500),
+    status:        VALID_STATUS.has(t.status)         ? t.status     : 'Not Started',
+    priority:      VALID_PRIORITY.has(t.priority)     ? t.priority   : '',
+    gtd:           VALID_GTD.has(t.gtd)               ? t.gtd        : 'Inbox',
+    recurrence:    VALID_RECURRENCE.has(t.recurrence) ? t.recurrence : '',
+    group_id:      t.group_id == null   ? null : (parseInt(t.group_id) || null),
+    parent_id:     t.parent_id == null  ? null : (parseInt(t.parent_id) || null),
+    due:           /^\d{4}-\d{2}-\d{2}$/.test(t.due) ? t.due : '',
+    done:          t.done     ? 1 : 0,
+    archived:      t.archived ? 1 : 0,
+    position:      parseInt(t.position) || 0,
+    assignee_text: String(t.assignee_text || '').slice(0, 200),
+    url:           String(t.url          || '').slice(0, 2000),
+    description:   String(t.description  || '').slice(0, 10000),
+    created_at:    String(t.created_at   || new Date().toISOString()),
+  }));
+  const groups = data.groups.map(g => ({
+    id:       parseInt(g.id)       || 0,
+    name:     String(g.name        || '').slice(0, 200),
+    position: parseInt(g.position) || 0,
+  }));
+  const notes = data.notes.map(n => ({
+    id:         parseInt(n.id)      || 0,
+    task_id:    parseInt(n.task_id) || 0,
+    body:       String(n.body       || '').slice(0, 10000),
+    created_at: String(n.created_at || new Date().toISOString()),
+  }));
+  return { tasks, groups, notes };
+}
+
 function importData(event) {
   const file = event.target.files[0];
   if (!file) return;
   const reader = new FileReader();
   reader.onload = e => {
     try {
-      const data = JSON.parse(e.target.result);
-      if (!Array.isArray(data.tasks) || !Array.isArray(data.groups) || !Array.isArray(data.notes)) {
+      const raw = JSON.parse(e.target.result);
+      if (!Array.isArray(raw.tasks) || !Array.isArray(raw.groups) || !Array.isArray(raw.notes)) {
         throw new Error('Invalid format');
       }
+      const data = sanitizeImport(raw);
       localStorage.setItem('pumapager.tasks',  JSON.stringify(data.tasks));
       localStorage.setItem('pumapager.groups', JSON.stringify(data.groups));
       localStorage.setItem('pumapager.notes',  JSON.stringify(data.notes));
@@ -1895,7 +1940,7 @@ function importData(event) {
     } catch {
       toast('❌ Invalid file — could not import.');
     }
-    event.target.value = ''; // reset so same file can be re-imported
+    event.target.value = '';
   };
   reader.readAsText(file);
 }
