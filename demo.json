@@ -1,0 +1,221 @@
+{
+  "version": 1,
+  "exported": "2026-03-09T09:00:00.000Z",
+  "groups": [
+    { "id": 1, "name": "Work",         "position": 1 },
+    { "id": 2, "name": "Personal",     "position": 2 },
+    { "id": 3, "name": "Side Project", "position": 3 }
+  ],
+  "tasks": [
+    {
+      "id": 1, "name": "Review Q1 metrics report",
+      "status": "In Progress", "priority": "High", "gtd": "Today",
+      "group_id": 1, "due": "2026-03-09", "done": 0, "archived": 0,
+      "position": 0, "parent_id": null, "recurrence": "",
+      "assignee_text": "", "url": "", "description": "Prepare for the 2pm leadership sync. Focus on revenue vs. forecast and churn rate.",
+      "created_at": "2026-03-07T08:00:00.000Z"
+    },
+    {
+      "id": 2, "name": "Deploy hotfix to production",
+      "status": "In Progress", "priority": "CRIT", "gtd": "Today",
+      "group_id": 1, "due": "2026-03-09", "done": 0, "archived": 0,
+      "position": 1, "parent_id": null, "recurrence": "",
+      "assignee_text": "Devon", "url": "https://github.com",
+      "description": "Critical bug in checkout flow causing payment failures for ~12% of users. Branch: fix/checkout-payment-bug",
+      "created_at": "2026-03-09T06:30:00.000Z"
+    },
+    {
+      "id": 3, "name": "Daily standup notes",
+      "status": "Not Started", "priority": "Low", "gtd": "Today",
+      "group_id": 1, "due": "", "done": 0, "archived": 0,
+      "position": 2, "parent_id": null, "recurrence": "daily",
+      "assignee_text": "", "url": "", "description": "",
+      "created_at": "2026-02-01T09:00:00.000Z"
+    },
+    {
+      "id": 4, "name": "Call dentist to reschedule",
+      "status": "Not Started", "priority": "Medium", "gtd": "Today",
+      "group_id": 2, "due": "", "done": 0, "archived": 0,
+      "position": 3, "parent_id": null, "recurrence": "",
+      "assignee_text": "", "url": "", "description": "",
+      "created_at": "2026-03-08T18:00:00.000Z"
+    },
+    {
+      "id": 5, "name": "Research competitors' pricing",
+      "status": "Not Started", "priority": "", "gtd": "Inbox",
+      "group_id": 1, "due": "", "done": 0, "archived": 0,
+      "position": 0, "parent_id": null, "recurrence": "",
+      "assignee_text": "", "url": "", "description": "",
+      "created_at": "2026-03-09T07:15:00.000Z"
+    },
+    {
+      "id": 6, "name": "Buy birthday gift for mom",
+      "status": "Not Started", "priority": "Medium", "gtd": "Inbox",
+      "group_id": 2, "due": "2026-03-22", "done": 0, "archived": 0,
+      "position": 1, "parent_id": null, "recurrence": "",
+      "assignee_text": "", "url": "", "description": "She mentioned wanting a new cookbook or something for the garden.",
+      "created_at": "2026-03-09T08:10:00.000Z"
+    },
+    {
+      "id": 7, "name": "Set up CI/CD pipeline",
+      "status": "Not Started", "priority": "High", "gtd": "Inbox",
+      "group_id": 3, "due": "", "done": 0, "archived": 0,
+      "position": 2, "parent_id": null, "recurrence": "",
+      "assignee_text": "", "url": "https://docs.github.com/en/actions",
+      "description": "Use GitHub Actions. Need: lint, test, build, and deploy stages.",
+      "created_at": "2026-03-08T20:00:00.000Z"
+    },
+    {
+      "id": 8, "name": "Reply to recruiter email",
+      "status": "Not Started", "priority": "Info", "gtd": "Inbox",
+      "group_id": null, "due": "", "done": 0, "archived": 0,
+      "position": 3, "parent_id": null, "recurrence": "",
+      "assignee_text": "", "url": "", "description": "",
+      "created_at": "2026-03-09T09:00:00.000Z"
+    },
+    {
+      "id": 9, "name": "Write unit tests for auth module",
+      "status": "Not Started", "priority": "Medium", "gtd": "Soon",
+      "group_id": 1, "due": "2026-03-14", "done": 0, "archived": 0,
+      "position": 0, "parent_id": null, "recurrence": "",
+      "assignee_text": "", "url": "", "description": "",
+      "created_at": "2026-03-06T10:00:00.000Z"
+    },
+    {
+      "id": 10, "name": "Test login flow",
+      "status": "Not Started", "priority": "", "gtd": "Soon",
+      "group_id": 1, "due": "", "done": 0, "archived": 0,
+      "position": 0, "parent_id": 9, "recurrence": "",
+      "assignee_text": "", "url": "", "description": "",
+      "created_at": "2026-03-06T10:01:00.000Z"
+    },
+    {
+      "id": 11, "name": "Test password reset",
+      "status": "Not Started", "priority": "", "gtd": "Soon",
+      "group_id": 1, "due": "", "done": 0, "archived": 0,
+      "position": 1, "parent_id": 9, "recurrence": "",
+      "assignee_text": "", "url": "", "description": "",
+      "created_at": "2026-03-06T10:02:00.000Z"
+    },
+    {
+      "id": 12, "name": "Test OAuth integration",
+      "status": "Completed", "priority": "", "gtd": "Soon",
+      "group_id": 1, "due": "", "done": 1, "archived": 0,
+      "position": 2, "parent_id": 9, "recurrence": "",
+      "assignee_text": "", "url": "", "description": "",
+      "created_at": "2026-03-06T10:03:00.000Z"
+    },
+    {
+      "id": 13, "name": "Plan weekend hiking trip",
+      "status": "Not Started", "priority": "Low", "gtd": "Soon",
+      "group_id": 2, "due": "2026-03-06", "done": 0, "archived": 0,
+      "position": 1, "parent_id": null, "recurrence": "",
+      "assignee_text": "", "url": "", "description": "Overdue — pick a trail and confirm with the group.",
+      "created_at": "2026-03-03T12:00:00.000Z"
+    },
+    {
+      "id": 14, "name": "Build landing page",
+      "status": "In Progress", "priority": "High", "gtd": "Soon",
+      "group_id": 3, "due": "2026-03-16", "done": 0, "archived": 0,
+      "position": 2, "parent_id": null, "recurrence": "",
+      "assignee_text": "Sarah", "url": "https://www.figma.com",
+      "description": "Use the Figma designs. Hero, features section, waitlist signup CTA.",
+      "created_at": "2026-03-05T14:00:00.000Z"
+    },
+    {
+      "id": 15, "name": "Design approval on mockups",
+      "status": "Not Started", "priority": "High", "gtd": "Waiting",
+      "group_id": 1, "due": "", "done": 0, "archived": 0,
+      "position": 0, "parent_id": null, "recurrence": "",
+      "assignee_text": "Design Team", "url": "", "description": "Sent mockups on March 5th via Figma link. Need sign-off to proceed with front-end build.",
+      "created_at": "2026-03-05T09:00:00.000Z"
+    },
+    {
+      "id": 16, "name": "Package delivery from Amazon",
+      "status": "Not Started", "priority": "Low", "gtd": "Waiting",
+      "group_id": 2, "due": "2026-03-11", "done": 0, "archived": 0,
+      "position": 1, "parent_id": null, "recurrence": "",
+      "assignee_text": "", "url": "", "description": "",
+      "created_at": "2026-03-08T16:00:00.000Z"
+    },
+    {
+      "id": 17, "name": "Learn Rust programming language",
+      "status": "Not Started", "priority": "Low", "gtd": "Someday",
+      "group_id": 3, "due": "", "done": 0, "archived": 0,
+      "position": 0, "parent_id": null, "recurrence": "",
+      "assignee_text": "", "url": "https://doc.rust-lang.org/book/",
+      "description": "Start with 'The Rust Book' (free online). Focus on ownership model and borrowing first.",
+      "created_at": "2026-02-15T10:00:00.000Z"
+    },
+    {
+      "id": 18, "name": "Remodel home office",
+      "status": "Not Started", "priority": "Medium", "gtd": "Someday",
+      "group_id": 2, "due": "", "done": 0, "archived": 0,
+      "position": 1, "parent_id": null, "recurrence": "",
+      "assignee_text": "", "url": "", "description": "Better desk, monitor arm, acoustic panels on the walls.",
+      "created_at": "2026-01-20T10:00:00.000Z"
+    },
+    {
+      "id": 19, "name": "Write technical blog post",
+      "status": "Not Started", "priority": "Low", "gtd": "Someday",
+      "group_id": null, "due": "", "done": 0, "archived": 0,
+      "position": 2, "parent_id": null, "recurrence": "",
+      "assignee_text": "", "url": "", "description": "Topic ideas: local-first apps, SQLite in production, or building with LLM APIs.",
+      "created_at": "2026-02-28T10:00:00.000Z"
+    },
+    {
+      "id": 20, "name": "Migrate database to PostgreSQL",
+      "status": "Not Started", "priority": "High", "gtd": "On Hold",
+      "group_id": 1, "due": "2026-03-07", "done": 0, "archived": 0,
+      "position": 0, "parent_id": null, "recurrence": "",
+      "assignee_text": "", "url": "", "description": "On hold pending infrastructure budget approval from finance. Schema migration scripts are ready in /scripts/db.",
+      "created_at": "2026-02-20T10:00:00.000Z"
+    },
+    {
+      "id": 21, "name": "Set up development environment",
+      "status": "Completed", "priority": "", "gtd": "Inbox",
+      "group_id": 3, "due": "", "done": 1, "archived": 1,
+      "position": 0, "parent_id": null, "recurrence": "",
+      "assignee_text": "", "url": "", "description": "",
+      "created_at": "2026-02-10T10:00:00.000Z"
+    },
+    {
+      "id": 22, "name": "Create project repository",
+      "status": "Completed", "priority": "", "gtd": "Inbox",
+      "group_id": 3, "due": "", "done": 1, "archived": 1,
+      "position": 1, "parent_id": null, "recurrence": "",
+      "assignee_text": "", "url": "", "description": "",
+      "created_at": "2026-02-10T09:00:00.000Z"
+    },
+    {
+      "id": 23, "name": "Initial project kickoff meeting",
+      "status": "Completed", "priority": "High", "gtd": "Inbox",
+      "group_id": 1, "due": "", "done": 1, "archived": 1,
+      "position": 2, "parent_id": null, "recurrence": "",
+      "assignee_text": "", "url": "", "description": "",
+      "created_at": "2026-02-03T10:00:00.000Z"
+    }
+  ],
+  "notes": [
+    {
+      "id": 1, "task_id": 1,
+      "body": "Found discrepancies in the revenue figures — Q3 numbers don't match finance's records. Flagging before the presentation.",
+      "created_at": "2026-03-08T14:30:00.000Z"
+    },
+    {
+      "id": 2, "task_id": 1,
+      "body": "Data team confirmed it was a reporting pipeline bug. Dashboard figures are now corrected. Good to present.",
+      "created_at": "2026-03-09T08:45:00.000Z"
+    },
+    {
+      "id": 3, "task_id": 2,
+      "body": "Root cause: race condition in the Stripe webhook handler. Fix is in review — CI passing, one approval needed.",
+      "created_at": "2026-03-09T07:00:00.000Z"
+    },
+    {
+      "id": 4, "task_id": 15,
+      "body": "Followed up with Jake on Slack. He said the team will have feedback by Friday EOD.",
+      "created_at": "2026-03-08T11:00:00.000Z"
+    }
+  ]
+}
