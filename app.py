@@ -39,6 +39,7 @@ app.secret_key = _secret
 app.config.update(
     SESSION_COOKIE_HTTPONLY = True,   # JS cannot read the cookie
     SESSION_COOKIE_SAMESITE = 'Lax', # blocks cross-site form submissions
+    SESSION_COOKIE_SECURE   = True,  # HTTPS only; remove if running plain HTTP locally
 )
 
 DB = 'pumatracker.db'
@@ -218,6 +219,31 @@ def validate_csrf():
 # Expose get_csrf_token to all Jinja2 templates
 app.jinja_env.globals['csrf_token'] = get_csrf_token
 
+def csrf_required(f):
+    """Decorator: reject state-changing requests that lack a valid CSRF token."""
+    @functools.wraps(f)
+    def decorated(*args, **kwargs):
+        if not validate_csrf():
+            return jsonify({'error': 'CSRF validation failed'}), 403
+        return f(*args, **kwargs)
+    return decorated
+
+@app.after_request
+def add_security_headers(response):
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    response.headers['Content-Security-Policy'] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com; "
+        "connect-src 'self'; "
+        "img-src 'self' data:; "
+        "frame-ancestors 'none';"
+    )
+    return response
+
 # ─────────────────────────────────────────────
 # AUTH ROUTES
 # ─────────────────────────────────────────────
@@ -324,6 +350,7 @@ def get_tasks():
 
 @app.route('/api/tasks', methods=['POST'])
 @login_required
+@csrf_required
 def create_task():
     data      = request.json
     name      = (data.get('name') or '').strip()
@@ -347,6 +374,7 @@ def create_task():
 
 @app.route('/api/tasks/<int:task_id>', methods=['PATCH'])
 @login_required
+@csrf_required
 def update_task(task_id):
     data   = request.json
     uid    = session['user_id']
@@ -433,6 +461,7 @@ def update_task(task_id):
 
 @app.route('/api/tasks/<int:task_id>', methods=['DELETE'])
 @login_required
+@csrf_required
 def delete_task(task_id):
     with get_db() as db:
         db.execute('DELETE FROM tasks WHERE id = ? AND owner_id = ?', (task_id, session['user_id']))
@@ -441,6 +470,7 @@ def delete_task(task_id):
 
 @app.route('/api/tasks/<int:task_id>/assign', methods=['POST'])
 @login_required
+@csrf_required
 def assign_task(task_id):
     """Copy a task into another user's inbox."""
     data        = request.json
@@ -496,6 +526,7 @@ def get_counts():
 
 @app.route('/api/archive', methods=['POST'])
 @login_required
+@csrf_required
 def archive_completed():
     uid = session['user_id']
     with get_db() as db:
@@ -528,6 +559,7 @@ def get_projects():
 
 @app.route('/api/projects', methods=['POST'])
 @login_required
+@csrf_required
 def create_project():
     uid  = session['user_id']
     name = (request.json.get('name') or '').strip()
@@ -549,6 +581,7 @@ def create_project():
 
 @app.route('/api/projects/<int:group_id>', methods=['PATCH'])
 @login_required
+@csrf_required
 def update_project(group_id):
     uid  = session['user_id']
     data = request.json
@@ -572,6 +605,7 @@ def update_project(group_id):
 
 @app.route('/api/projects/<int:group_id>', methods=['DELETE'])
 @login_required
+@csrf_required
 def delete_project(group_id):
     uid = session['user_id']
     with get_db() as db:
@@ -590,6 +624,7 @@ def delete_project(group_id):
 
 @app.route('/api/reorder', methods=['POST'])
 @login_required
+@csrf_required
 def reorder():
     uid  = session['user_id']
     data = request.json
@@ -630,6 +665,7 @@ def get_notes(task_id):
 
 @app.route('/api/tasks/<int:task_id>/notes', methods=['POST'])
 @login_required
+@csrf_required
 def add_note(task_id):
     uid  = session['user_id']
     body = (request.json.get('body') or '').strip()

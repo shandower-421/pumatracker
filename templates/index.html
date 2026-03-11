@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="csrf-token" content="{{ csrf_token() }}"/>
 <title>PumaTracker</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
@@ -550,6 +551,16 @@ tr.subtask-row td:nth-child(2)::before {
 </div>
 
 <script>
+const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]').content;
+
+async function apiFetch(url, options = {}) {
+  const headers = { ...options.headers };
+  if (options.method && options.method !== 'GET') {
+    headers['X-CSRF-Token'] = CSRF_TOKEN;
+  }
+  return fetch(url, { ...options, headers });
+}
+
 let sendTaskId = null;
 let taskCache = {};
 let activePanelTaskId = null;
@@ -919,7 +930,7 @@ function esc(s) {
 
 // ── API CALLS ──
 async function patch(id, data) {
-  await fetch(`/api/tasks/${id}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+  await apiFetch(`/api/tasks/${id}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
   loadCounts();
   if ('status' in data || 'gtd' in data) loadTasks();
 }
@@ -941,18 +952,18 @@ async function addTask() {
   if (filterState.gtd)      payload.gtd      = GTD_KEY_MAP[filterState.gtd];
   if (filterState.priority) payload.priority = PRIO_KEY_MAP[filterState.priority];
   if (filterState.project?.startsWith('group-')) payload.group_id = parseInt(filterState.project.split('-')[1]);
-  await fetch('/api/tasks', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
+  await apiFetch('/api/tasks', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
   loadTasks();
 }
 
 async function deleteTask(id) {
-  await fetch(`/api/tasks/${id}`, { method:'DELETE' });
+  await apiFetch(`/api/tasks/${id}`, { method:'DELETE' });
   loadTasks();
 }
 
 // ── ARCHIVE ──
 async function archiveCompleted() {
-  const res  = await fetch('/api/archive', { method: 'POST' });
+  const res  = await apiFetch('/api/archive', { method: 'POST' });
   const data = await res.json();
   if (!data.ok) { toast('❌ Archive failed.'); return; }
   if (data.count === 0) {
@@ -971,7 +982,7 @@ async function archiveCompleted() {
 async function createProject() {
   const name = prompt('Project name:');
   if (!name || !name.trim()) return;
-  const res = await fetch('/api/projects', {
+  const res = await apiFetch('/api/projects', {
     method: 'POST', headers: {'Content-Type':'application/json'},
     body: JSON.stringify({ name: name.trim() })
   });
@@ -998,7 +1009,7 @@ function startProjectRename(groupId) {
     newEl.textContent = newName;
     input.replaceWith(newEl);
     if (newName !== oldName) {
-      await fetch(`/api/projects/${groupId}`, {
+      await apiFetch(`/api/projects/${groupId}`, {
         method:'PATCH', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ name: newName })
       });
@@ -1014,7 +1025,7 @@ function startProjectRename(groupId) {
 
 async function deleteProject(groupId) {
   if (!confirm('Delete this project? Tasks will move to No Project.')) return;
-  const res = await fetch(`/api/projects/${groupId}`, { method: 'DELETE' });
+  const res = await apiFetch(`/api/projects/${groupId}`, { method: 'DELETE' });
   if (res.ok) { toast('✅ Project deleted.'); await loadGroups(); loadTasks(); }
   else toast('❌ Could not delete project.');
 }
@@ -1037,7 +1048,7 @@ function renameSidebarProject(groupId) {
     newEl.textContent = newName;
     input.replaceWith(newEl);
     if (newName !== oldName) {
-      await fetch(`/api/projects/${groupId}`, {
+      await apiFetch(`/api/projects/${groupId}`, {
         method:'PATCH', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ name: newName })
       });
@@ -1148,7 +1159,7 @@ async function applySidebarGroupReorder(sourceId, targetId, insertBefore) {
   if (tgtIdx === -1) ordered.push(moved);
   else ordered.splice(insertBefore ? tgtIdx : tgtIdx + 1, 0, moved);
   const groupUpdates = ordered.map((g, pos) => ({ id: g.id, position: pos }));
-  await fetch('/api/reorder', {
+  await apiFetch('/api/reorder', {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ tasks: [], groups: groupUpdates })
   });
@@ -1290,7 +1301,7 @@ async function applyTaskReorder(taskId, newGtd, targetTaskId, insertBefore, newP
     oldIds.forEach((id, pos) => updates.push({ id, gtd: oldGtd, position: pos }));
   }
 
-  await fetch('/api/reorder', {
+  await apiFetch('/api/reorder', {
     method: 'POST', headers: {'Content-Type':'application/json'},
     body: JSON.stringify({ tasks: updates, groups: [] })
   });
@@ -1298,7 +1309,7 @@ async function applyTaskReorder(taskId, newGtd, targetTaskId, insertBefore, newP
   // If parent is changing, update it via PATCH (guard against self-referential assignment)
   const resolvedParent = newParentId !== undefined ? newParentId : oldParent;
   if (resolvedParent !== oldParent && resolvedParent !== taskId) {
-    await fetch(`/api/tasks/${taskId}`, {
+    await apiFetch(`/api/tasks/${taskId}`, {
       method: 'PATCH', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ parent_id: resolvedParent })
     });
@@ -1310,7 +1321,7 @@ async function applyTaskReorder(taskId, newGtd, targetTaskId, insertBefore, newP
 async function applyMakeSubtask(taskId, parentId, parentGtd) {
   if (isDescendant(taskId, parentId)) return; // safety: no circular
   // Move the task to the same GTD as parent and set parent_id
-  await fetch(`/api/tasks/${taskId}`, {
+  await apiFetch(`/api/tasks/${taskId}`, {
     method: 'PATCH', headers: {'Content-Type':'application/json'},
     body: JSON.stringify({ parent_id: parentId, gtd: parentGtd })
   });
@@ -1418,7 +1429,7 @@ async function saveTaskPanel() {
   if (data.status !== 'Completed' && taskCache[activePanelTaskId]?.archived) {
     data.archived = 0;
   }
-  const res  = await fetch(`/api/tasks/${activePanelTaskId}`, {
+  const res  = await apiFetch(`/api/tasks/${activePanelTaskId}`, {
     method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)
   });
   const json = await res.json();
@@ -1495,7 +1506,7 @@ async function confirmAddSubtask() {
   const name = document.getElementById('subtaskNameInput').value.trim();
   if (!name) return;
   const parentTask = taskCache[subtaskParentId];
-  await fetch('/api/tasks', {
+  await apiFetch('/api/tasks', {
     method: 'POST', headers: {'Content-Type':'application/json'},
     body: JSON.stringify({
       name,
@@ -1533,7 +1544,7 @@ function closeQuickNoteModal() {
 async function confirmQuickNote() {
   const body = document.getElementById('quickNoteInput').value.trim();
   if (!body || !quickNoteTaskId) return;
-  await fetch(`/api/tasks/${quickNoteTaskId}/notes`, {
+  await apiFetch(`/api/tasks/${quickNoteTaskId}/notes`, {
     method: 'POST', headers: {'Content-Type':'application/json'},
     body: JSON.stringify({ body })
   });
@@ -1563,7 +1574,7 @@ function closeModal() {
 
 async function confirmSend() {
   const userId = document.getElementById('sendUserSelect').value;
-  const res    = await fetch(`/api/tasks/${sendTaskId}/assign`, {
+  const res    = await apiFetch(`/api/tasks/${sendTaskId}/assign`, {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ user_id: parseInt(userId) })
   });
@@ -1610,7 +1621,7 @@ async function postTaskNote() {
   if (!body || !activePanelTaskId) return;
   const btn = document.querySelector('.notes-add-btn');
   btn.disabled = true;
-  await fetch(`/api/tasks/${activePanelTaskId}/notes`, {
+  await apiFetch(`/api/tasks/${activePanelTaskId}/notes`, {
     method: 'POST', headers: {'Content-Type':'application/json'},
     body: JSON.stringify({ body })
   });
