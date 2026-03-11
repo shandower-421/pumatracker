@@ -1154,7 +1154,7 @@ function taskRow(t, depth = 0, hasSubtasks = false) {
     ondrop="onTaskDrop(event)"
     ondragend="onTaskDragEnd(event)"
     onclick="handleRowClick(event,${t.id})"
-    oncontextmenu="openTaskContextMenu(event,${t.id},'${esc(t.name)}')">
+    oncontextmenu="openTaskContextMenu(event,${t.id})">
     <td><div class="${cbCls}" onclick="toggleDone(${t.id},${t.done?0:1})"></div></td>
     <td>${namePrefix}<span class="task-name-text" onclick="event.stopPropagation();startRename(this,${t.id})">${esc(t.name)}</span>${t.recurrence ? `<span class="recur-badge" title="Repeats ${esc(t.recurrence)}">↻</span>` : ''}</td>
     <td>${pill('gtd', t.gtd, t.id, ['Inbox','Today','Soon','Waiting','Someday','On Hold'])}</td>
@@ -1717,9 +1717,9 @@ async function saveTaskPanel() {
 let ctxTaskId   = null;
 let ctxTaskName = null;
 
-function openTaskContextMenu(e, taskId, taskName) {
+function openTaskContextMenu(e, taskId) {
   e.preventDefault(); e.stopPropagation();
-  ctxTaskId = taskId; ctxTaskName = taskName;
+  ctxTaskId = taskId; ctxTaskName = taskCache[taskId]?.name ?? '';
   const menu = document.getElementById('taskCtxMenu');
   menu.style.display = 'block';
   const x = Math.min(e.clientX, window.innerWidth  - menu.offsetWidth  - 8);
