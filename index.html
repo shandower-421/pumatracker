@@ -279,12 +279,14 @@
   --border:#2a2d35; --border2:#363a45;
   --text:#e8eaf0; --text-dim:#7a7f8e; --text-faint:#3e4252;
   --accent:#5b8af0; --accent-dim:#1e2d4a;
+  --ease-out:cubic-bezier(0.25,1,0.5,1);
+  --dur-micro:100ms; --dur-fast:200ms; --dur-mid:300ms; --dur-panel:360ms;
   --p-high:#f05b5b; --p-med:#f0b45b; --p-low:#5bf0a0;
   --s-todo:#f05b5b; --s-prog:#5bf0a0; --s-done:#5b8af0;
   --g-inbox:#e8eaf0; --g-today:#059669; --g-soon:#f0dc32;
   --g-waiting:#f08c32; --g-someday:#7c3aed; --g-hold:#f05b5b;
 }
-body { font-family:'IBM Plex Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; display:flex; flex-direction:column; }
+body { font-family:'IBM Plex Sans',sans-serif; background:var(--bg); color:var(--text); height:100vh; overflow:hidden; display:flex; flex-direction:column; }
 
 /* TOP BAR */
 .topbar { display:flex; align-items:center; gap:16px; padding:0 24px; height:56px; border-bottom:1px solid var(--border); background:var(--surface); position:sticky; top:0; z-index:100; }
@@ -302,23 +304,30 @@ select.filter-select:hover, select.filter-select:focus { border-color:var(--acce
 /* SIDEBAR */
 .sidebar { width:210px; flex-shrink:0; background:var(--surface); border-right:1px solid var(--border); padding:20px 0; display:flex; flex-direction:column; gap:2px; overflow-y:auto; }
 .sidebar-label { font-size:.65rem; letter-spacing:.12em; text-transform:uppercase; color:var(--text-faint); padding:10px 20px 4px; font-family:'IBM Plex Mono',monospace; }
-.sidebar-item { display:flex; align-items:center; gap:10px; padding:8px 20px; font-size:.87rem; color:var(--text-dim); cursor:pointer; border-left:2px solid transparent; transition:all .12s; user-select:none; }
+.sidebar-item { display:flex; align-items:center; gap:10px; padding:8px 20px; font-size:.87rem; color:var(--text-dim); cursor:pointer; border-left:2px solid transparent; transition:background 180ms var(--ease-out), color 180ms var(--ease-out); user-select:none; position:relative; }
+.sidebar-item::before { content:''; position:absolute; left:-2px; top:20%; bottom:20%; width:2px; background:var(--accent); border-radius:1px; transform:scaleY(0); opacity:0; transition:transform 200ms var(--ease-out), opacity 200ms var(--ease-out); }
+.sidebar-item.active::before { transform:scaleY(1); opacity:1; }
+.sidebar-item:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; border-radius:3px; }
 .sidebar-item:hover { background:var(--surface2); color:var(--text); }
-.sidebar-item.active { color:var(--text); border-left-color:var(--accent); background:var(--accent-dim); }
+.sidebar-item.active { color:var(--text); background:var(--accent-dim); }
 .sidebar-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
-.sidebar-count { margin-left:auto; font-family:'IBM Plex Mono',monospace; font-size:.72rem; color:var(--text-faint); background:var(--surface2); padding:1px 6px; border-radius:10px; }
+.sidebar-count { margin-left:auto; font-family:'IBM Plex Mono',monospace; font-size:.72rem; color:var(--text-faint); background:var(--surface2); padding:1px 6px; border-radius:10px; display:inline-block; }
+@keyframes badgePulse { 0%{transform:scale(1);} 40%{transform:scale(1.25);} 100%{transform:scale(1);} }
+.sidebar-count.changed { animation:badgePulse 320ms var(--ease-out) forwards; }
 
 /* CONTENT */
 .content { flex:1; overflow-y:auto; display:flex; flex-direction:column; }
 
 /* ADD BAR */
 .add-bar { display:flex; gap:10px; align-items:center; padding:14px 24px; border-bottom:1px solid var(--border); background:var(--surface); }
-.add-input { flex:1; background:var(--surface2); border:1px solid var(--border2); color:var(--text); font-family:'IBM Plex Sans',sans-serif; font-size:.92rem; padding:9px 14px; border-radius:6px; outline:none; transition:border-color .15s; }
-.add-input:focus { border-color:var(--accent); }
+.add-input { flex:1; background:var(--surface2); border:1px solid var(--border2); color:var(--text); font-family:'IBM Plex Sans',sans-serif; font-size:.92rem; padding:9px 14px; border-radius:6px; outline:none; transition:border-color 200ms var(--ease-out), box-shadow 200ms var(--ease-out); }
+.add-input:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(91,138,240,.12); }
 .add-input::placeholder { color:var(--text-faint); }
-.add-btn { background:var(--accent); color:#fff; border:none; border-radius:6px; padding:9px 18px; font-family:'IBM Plex Sans',sans-serif; font-size:.88rem; font-weight:500; cursor:pointer; transition:opacity .15s,transform .1s; white-space:nowrap; }
+.add-btn { background:var(--accent); color:#fff; border:none; border-radius:6px; padding:9px 18px; font-family:'IBM Plex Sans',sans-serif; font-size:.88rem; font-weight:500; cursor:pointer; transition:opacity .15s, transform 100ms var(--ease-out); white-space:nowrap; }
 .add-btn:hover { opacity:.85; }
 .add-btn:active { transform:scale(.97); }
+@keyframes btnConfirm { 0%{transform:scale(0.96);} 50%{transform:scale(1.03);} 100%{transform:scale(1);} }
+.add-btn.submitted { animation:btnConfirm 300ms var(--ease-out) forwards; }
 
 /* TABLE */
 .table-wrap { flex:1; overflow-x:auto; }
@@ -327,8 +336,10 @@ thead tr { border-bottom:1px solid var(--border); background:var(--bg); position
 th { font-family:'IBM Plex Mono',monospace; font-size:.67rem; letter-spacing:.1em; text-transform:uppercase; color:var(--text-faint); padding:10px 12px; text-align:left; font-weight:500; white-space:nowrap; }
 th:first-child { padding-left:24px; }
 th.col-task { width:100%; }
-tbody tr { border-bottom:1px solid var(--border); transition:background .1s; animation:rowIn .2s ease; }
-@keyframes rowIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:translateY(0); } }
+tbody tr { border-bottom:1px solid var(--border); transition:background .1s; animation:rowIn 240ms var(--ease-out) both; }
+@keyframes rowIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
+@keyframes rowExit { from { opacity:1; transform:translateX(0); } to { opacity:0; transform:translateX(-8px); } }
+.task-row.completing { animation:rowExit 220ms var(--ease-out) forwards !important; pointer-events:none; }
 tbody tr:hover { background:var(--surface2); }
 tbody tr.done-row td { opacity:.4; }
 tbody tr.done-row .task-name { text-decoration:line-through; }
@@ -336,8 +347,10 @@ tbody tr.due-today:not(.done-row)         { background: rgba(217,119,6,0.08); }
 tbody tr.due-today:not(.done-row):hover   { background: rgba(217,119,6,0.15); }
 tbody tr.due-overdue:not(.done-row)       { background: rgba(220,38,38,0.08); }
 tbody tr.due-overdue:not(.done-row):hover { background: rgba(220,38,38,0.15); }
-tbody tr.due-today > td:first-child       { border-left: 3px solid #d97706; }
-tbody tr.due-overdue > td:first-child     { border-left: 3px solid #dc2626; }
+tbody tr.due-today > td:first-child   { border-left: 3px solid #d97706; }
+tbody tr.due-overdue > td:first-child { border-left: none; position:relative; padding-left:3px; }
+@keyframes urgencyPulse { 0%,100%{opacity:0.4;} 50%{opacity:1;} }
+tbody tr.due-overdue:not(.done-row) > td:first-child::after { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:#dc2626; animation:urgencyPulse 2400ms ease-in-out infinite; }
 .recur-badge { font-size:.7rem; color: var(--accent); opacity:.7; margin-left:5px; vertical-align:middle; }
 tbody tr.kb-focus,
 tbody tr.kb-focus:hover { background: color-mix(in srgb, var(--accent) 18%, var(--bg)) !important; }
@@ -345,19 +358,22 @@ td { padding:10px 12px; font-size:.87rem; vertical-align:middle; }
 td:first-child { padding-left:24px; }
 
 /* Checkbox */
-.cb { width:17px; height:17px; border:2px solid var(--border2); border-radius:4px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .15s; flex-shrink:0; }
+.cb { width:17px; height:17px; border:2px solid var(--border2); border-radius:4px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:border-color .15s, background .15s; flex-shrink:0; }
 .cb:hover { border-color:var(--accent); }
+.cb:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 .cb.checked { background:var(--s-done); border-color:var(--s-done); }
 .cb.checked::after { content:'✓'; color:#0e0f11; font-size:11px; font-weight:bold; }
 
 /* Task name */
-.task-name-text { font-size:.9rem; color:var(--text); cursor:text; padding:4px 6px; border-radius:4px; border:1px solid transparent; display:inline-block; transition:border-color .15s, background .15s; }
+.task-name-text { font-size:.9rem; color:var(--text); cursor:text; padding:4px 6px; border-radius:4px; border:1px solid transparent; display:inline-block; transition:border-color .15s, background .15s; overflow-wrap:break-word; word-break:break-word; }
 .task-name-text:hover { border-color:var(--border2); background:var(--surface2); }
 .task-name { font-size:.9rem; color:var(--text); padding:4px 6px; border-radius:4px; border:1px solid var(--accent); outline:none; background:var(--surface2); font-family:'IBM Plex Sans',sans-serif; min-width:160px; }
 
 /* Pill selects */
-.pill-select { border:none; border-radius:6px; font-family:'IBM Plex Sans',sans-serif; font-size:.75rem; font-weight:700; padding:5px 10px; cursor:pointer; outline:none; -webkit-appearance:none; appearance:none; text-align:center; transition:filter .15s, transform .1s; letter-spacing:.02em; color-scheme:dark; }
-.pill-select:hover { filter:brightness(1.15); transform:scale(1.04); }
+.pill-select { border:none; border-radius:6px; font-family:'IBM Plex Sans',sans-serif; font-size:.75rem; font-weight:700; padding:5px 10px; cursor:pointer; outline:none; -webkit-appearance:none; appearance:none; text-align:center; transition:filter 120ms var(--ease-out), transform 100ms var(--ease-out); letter-spacing:.02em; color-scheme:dark; will-change:transform; }
+.pill-select:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+.pill-select:hover { filter:brightness(1.18); transform:scale(1.05); }
+.pill-select:active { transform:scale(0.97); filter:brightness(0.95); transition-duration:60ms; }
 .pill-select option { background:var(--surface2); color:var(--text); font-weight:400; }
 .priority-blank    { background:rgba(232,234,240,.18); color:transparent; border:1px solid rgba(232,234,240,.35); min-width:34px; }
 .priority-CRIT { background:#dc2626; color:#fff; outline:2px solid #fff; outline-offset:-3px; }
@@ -382,11 +398,14 @@ td:first-child { padding-left:24px; }
 
 /* Date */
 .date-input { background:transparent; border:1px solid transparent; border-radius:5px; color:var(--text-dim); font-family:'IBM Plex Mono',monospace; font-size:.77rem; padding:4px 8px; outline:none; cursor:pointer; transition:border-color .15s,background .15s; color-scheme:dark; }
-.date-input:hover, .date-input:focus { border-color:var(--border2); background:var(--surface2); color:var(--text); }
+.date-input:hover { border-color:var(--border2); background:var(--surface2); color:var(--text); }
+.date-input:focus { border-color:var(--accent); background:var(--surface2); color:var(--text); }
 
 /* Archive button */
-.archive-btn { font-size:.78rem; color:var(--text-dim); background:var(--surface2); border:1px solid var(--border2); padding:5px 12px; border-radius:6px; cursor:pointer; font-family:'IBM Plex Sans',sans-serif; font-weight:500; transition:all .15s; white-space:nowrap; }
+.archive-btn { font-size:.78rem; color:var(--text-dim); background:var(--surface2); border:1px solid var(--border2); padding:5px 12px; border-radius:6px; cursor:pointer; font-family:'IBM Plex Sans',sans-serif; font-weight:500; transition:border-color .15s, color .15s; white-space:nowrap; }
 .archive-btn:hover { border-color:var(--accent); color:var(--text); }
+@keyframes archiveConfirm { 0%{background:var(--surface2);color:var(--text-dim);border-color:var(--border2);} 30%{background:var(--s-done);color:#0e0f11;border-color:var(--s-done);} 100%{background:var(--surface2);color:var(--text-dim);border-color:var(--border2);} }
+.archive-btn.confirmed { animation:archiveConfirm 600ms var(--ease-out) forwards; }
 
 /* Archive / GTD section rows */
 .archive-header-row td { padding:6px 24px; background:var(--bg); font-size:.65rem; letter-spacing:.12em; text-transform:uppercase; color:var(--text-faint); font-family:'IBM Plex Mono',monospace; border-bottom:1px solid var(--border); }
@@ -408,17 +427,26 @@ td:first-child { padding-left:24px; }
 .empty-row td { text-align:center; padding:60px 0; color:var(--text-faint); font-size:.88rem; }
 
 /* Toast */
-.toast { position:fixed; bottom:28px; right:28px; background:var(--surface2); border:1px solid var(--border2); border-radius:8px; padding:12px 20px; font-size:.85rem; color:var(--text); box-shadow:0 8px 32px rgba(0,0,0,.4); z-index:9999; transform:translateY(10px); opacity:0; transition:all .3s; pointer-events:none; }
+.toast { position:fixed; bottom:28px; right:28px; background:var(--surface2); border:1px solid var(--border2); border-radius:8px; padding:12px 20px; font-size:.85rem; color:var(--text); box-shadow:0 8px 32px rgba(0,0,0,.4); z-index:9999; transform:translateY(10px); opacity:0; transition:opacity 280ms var(--ease-out), transform 280ms var(--ease-out); pointer-events:none; }
 .toast.show { transform:translateY(0); opacity:1; }
+.toast.hiding { transform:translateY(6px); opacity:0; transition-duration:200ms; transition-timing-function:cubic-bezier(0.5,0,1,0.5); }
 
 /* Task Detail Panel */
-.panel-overlay { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:150; display:none; }
-.panel-overlay.open { display:block; }
-.task-panel { position:fixed; top:0; right:0; width:420px; max-width:100vw; height:100vh; background:var(--surface); border-left:1px solid var(--border2); z-index:151; transform:translateX(100%); transition:transform .25s cubic-bezier(.4,0,.2,1); display:flex; flex-direction:column; box-shadow:-12px 0 40px rgba(0,0,0,.4); }
+.panel-overlay { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:150; opacity:0; pointer-events:none; transition:opacity var(--dur-panel) var(--ease-out); }
+.panel-overlay.open { opacity:1; pointer-events:auto; }
+.task-panel { position:fixed; top:0; right:0; width:420px; max-width:100vw; height:100vh; background:var(--surface); border-left:1px solid var(--border2); z-index:151; transform:translateX(100%); transition:transform var(--dur-panel) var(--ease-out); display:flex; flex-direction:column; box-shadow:-12px 0 40px rgba(0,0,0,.4); }
 .task-panel.open { transform:translateX(0); }
+@keyframes panelFieldIn { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:translateY(0); } }
+.task-panel.open .panel-field { animation:panelFieldIn 200ms var(--ease-out) both; }
+.task-panel.open .panel-field:nth-child(1)  { animation-delay:60ms; }
+.task-panel.open .panel-field:nth-child(2)  { animation-delay:80ms; }
+.task-panel.open .panel-field:nth-child(3)  { animation-delay:100ms; }
+.task-panel.open .panel-field:nth-child(4)  { animation-delay:120ms; }
+.task-panel.open .panel-field:nth-child(5)  { animation-delay:135ms; }
+.task-panel.open .panel-field:nth-child(n+6){ animation-delay:150ms; }
 .panel-head { display:flex; align-items:center; justify-content:space-between; padding:20px 24px; border-bottom:1px solid var(--border); flex-shrink:0; }
 .panel-head-title { font-family:'Syne',sans-serif; font-size:.8rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--text-faint); }
-.panel-close { background:none; border:1px solid var(--border2); color:var(--text-dim); font-size:.9rem; cursor:pointer; padding:5px 10px; border-radius:5px; transition:all .15s; line-height:1; }
+.panel-close { background:none; border:1px solid var(--border2); color:var(--text-dim); font-size:.9rem; cursor:pointer; padding:5px 10px; border-radius:5px; transition:border-color .15s, color .15s; line-height:1; }
 .panel-close:hover { color:var(--text); border-color:var(--text-dim); }
 .panel-body { padding:24px; flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:18px; }
 .panel-field { display:flex; flex-direction:column; gap:6px; }
@@ -438,7 +466,7 @@ td:first-child { padding-left:24px; }
 .notes-compose { display:flex; flex-direction:column; gap:6px; }
 .notes-textarea { background:var(--surface2); border:1px solid var(--border2); color:var(--text); font-family:'IBM Plex Sans',sans-serif; font-size:.85rem; padding:8px 10px; border-radius:6px; outline:none; resize:none; min-height:64px; line-height:1.5; transition:border-color .15s; }
 .notes-textarea:focus { border-color:var(--accent); }
-.notes-add-btn { align-self:flex-end; background:var(--surface2); border:1px solid var(--border2); color:var(--text-dim); font-family:'IBM Plex Sans',sans-serif; font-size:.8rem; padding:5px 14px; border-radius:5px; cursor:pointer; transition:all .15s; }
+.notes-add-btn { align-self:flex-end; background:var(--surface2); border:1px solid var(--border2); color:var(--text-dim); font-family:'IBM Plex Sans',sans-serif; font-size:.8rem; padding:5px 14px; border-radius:5px; cursor:pointer; transition:border-color .15s, color .15s; }
 .notes-add-btn:hover { color:var(--text); border-color:var(--text-dim); }
 .notes-feed { display:flex; flex-direction:column; gap:8px; }
 .note-entry { border-left:2px solid var(--border2); padding:6px 0 6px 12px; }
@@ -447,9 +475,10 @@ td:first-child { padding-left:24px; }
 tbody tr { cursor:pointer; }
 
 /* Modals */
-.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:200; display:none; align-items:center; justify-content:center; }
-.modal-overlay.open { display:flex; }
-.modal { background:var(--surface); border:1px solid var(--border2); border-radius:10px; padding:32px; width:340px; box-shadow:0 24px 64px rgba(0,0,0,.5); }
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:200; display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity var(--dur-mid) var(--ease-out); }
+.modal-overlay.open { opacity:1; pointer-events:auto; }
+.modal { background:var(--surface); border:1px solid var(--border2); border-radius:10px; padding:32px; width:340px; box-shadow:0 24px 64px rgba(0,0,0,.5); transform:scale(0.94) translateY(6px); opacity:0; transition:transform var(--dur-mid) var(--ease-out), opacity var(--dur-mid) var(--ease-out); }
+.modal-overlay.open .modal { transform:scale(1) translateY(0); opacity:1; }
 .modal h2 { font-family:'Syne',sans-serif; font-size:1.1rem; margin-bottom:8px; }
 .modal p { font-size:.83rem; color:var(--text-dim); margin-bottom:20px; }
 .modal-btns { display:flex; gap:10px; justify-content:flex-end; }
@@ -464,6 +493,103 @@ tbody tr { cursor:pointer; }
 ::-webkit-scrollbar { width:6px; height:6px; }
 ::-webkit-scrollbar-track { background:transparent; }
 ::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   SIDEBAR TOGGLE BUTTON (hidden on desktop)
+══════════════════════════════════════════════════════ */
+.sidebar-toggle {
+  display:none; align-items:center; justify-content:center;
+  background:none; border:none; color:var(--text);
+  font-size:1.15rem; cursor:pointer; padding:6px 8px;
+  border-radius:5px; flex-shrink:0; line-height:1;
+  transition:background .12s;
+}
+.sidebar-toggle:hover { background:var(--surface2); }
+.sidebar-toggle:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+
+/* MOBILE SIDEBAR BACKDROP */
+.sidebar-mobile-overlay {
+  display:none; position:fixed; inset:0;
+  background:rgba(0,0,0,.55); z-index:149;
+}
+.sidebar-mobile-overlay.open { display:block; }
+
+/* ══════════════════════════════════════════════════════
+   TABLET  768px – 1023px
+══════════════════════════════════════════════════════ */
+@media (max-width:1023px) {
+  .sidebar { width:180px; }
+  .task-panel { width:380px; }
+  table { min-width:560px; }
+  th.col-task { min-width:160px; }
+  /* Hide Assignee column */
+  thead th:nth-child(7), tbody td:nth-child(7) { display:none; }
+  /* Narrow project cell */
+  .project-cell { max-width:70px; }
+}
+
+/* ══════════════════════════════════════════════════════
+   MOBILE  < 768px
+══════════════════════════════════════════════════════ */
+@media (max-width:767px) {
+  /* Show hamburger */
+  .sidebar-toggle { display:flex; }
+
+  /* Sidebar: off-canvas drawer */
+  .sidebar {
+    position:fixed; left:0; top:0; bottom:0;
+    z-index:150; width:260px;
+    transform:translateX(-100%);
+    transition:transform .25s cubic-bezier(.4,0,.2,1);
+    box-shadow:8px 0 32px rgba(0,0,0,.5);
+  }
+  .sidebar.mobile-open { transform:translateX(0); }
+
+  /* Topbar: compact */
+  .topbar { padding:0 12px; gap:8px; }
+  /* Hide filter dropdowns (sidebar covers GTD/priority/project) */
+  .filter-group { display:none; }
+  /* Shrink toolbar buttons */
+  .archive-btn { padding:5px 8px; font-size:.74rem; }
+
+  /* Table: drop min-width, hide Status + Project + Assignee */
+  table { min-width:0; }
+  thead th:nth-child(4), tbody td:nth-child(4),   /* Status  */
+  thead th:nth-child(6), tbody td:nth-child(6),   /* Project */
+  thead th:nth-child(7), tbody td:nth-child(7) {  /* Assignee */
+    display:none;
+  }
+
+  /* Looser row padding for fingers */
+  td { padding:12px 8px; }
+  th { padding:10px 8px; }
+  td:first-child, th:first-child { padding-left:14px; }
+
+  /* Bigger checkbox touch target */
+  .cb { width:22px; height:22px; }
+
+  /* Pill selects: slightly taller */
+  .pill-select { padding:7px 8px; font-size:.72rem; }
+
+  /* Add bar */
+  .add-bar { padding:10px 14px; gap:8px; }
+  .add-btn  { min-height:40px; }
+
+  /* Task panel: full width */
+  .task-panel { width:100vw; max-width:100vw; }
+
+  /* Due date: compact */
+  .date-input { font-size:.72rem; padding:3px 6px; }
+}
 
 /* PROJECT HEADERS */
 .group-header-row td { padding:0; border-bottom:none; cursor:default; }
@@ -507,8 +633,12 @@ tr.subtask-row td:nth-child(2)::before {
   font-size:.55rem; color:var(--text-dim); cursor:pointer;
   border-radius:3px; border:1px solid var(--border2);
   user-select:none; vertical-align:middle; flex-shrink:0;
+  transition:transform 200ms var(--ease-out), background var(--dur-micro), color var(--dur-micro);
 }
+.expand-toggle[aria-expanded="true"]  { transform:rotate(90deg); }
+.expand-toggle[aria-expanded="false"] { transform:rotate(0deg); }
 .expand-toggle:hover { background:var(--border2); color:var(--text); }
+.expand-toggle:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
 
 .empty-project-row td { padding:10px 24px; color:var(--text-faint); font-size:.78rem; font-style:italic; border-bottom:1px solid var(--border); transition:background .12s, color .12s; }
 .empty-project-row.drop-into td { background:var(--accent-dim); color:var(--accent); border-color:var(--accent); }
@@ -524,13 +654,18 @@ tr.subtask-row td:nth-child(2)::before {
 .sidebar-rename-input { background:var(--surface2); border:1px solid var(--accent); border-radius:4px; color:var(--text); font-size:.84rem; padding:1px 5px; width:100%; min-width:0; font-family:inherit; outline:none; }
 .sidebar-item.sidebar-drop-above { box-shadow:0 -2px 0 0 var(--accent); }
 .sidebar-item.sidebar-drop-below { box-shadow:0 2px 0 0 var(--accent); }
-.sidebar-item.proj-dragging { opacity:.35; }
+.sidebar-item.proj-dragging { opacity:.5; transform:scale(1.02) translateX(2px); box-shadow:0 4px 16px rgba(0,0,0,.35); border-radius:4px; transition:transform 120ms var(--ease-out), box-shadow 120ms var(--ease-out), opacity 120ms; position:relative; z-index:10; }
 
 /* Context menus */
-.ctx-menu { position:fixed; background:var(--surface2); border:1px solid var(--border2); border-radius:6px; padding:4px 0; min-width:140px; z-index:1000; box-shadow:0 6px 20px rgba(0,0,0,.4); }
-.ctx-menu-item { display:flex; align-items:center; gap:8px; padding:7px 14px; font-size:.84rem; color:var(--text-dim); cursor:pointer; transition:background .1s, color .1s; }
-.ctx-menu-item:hover { background:var(--surface); color:var(--text); }
-.ctx-menu-item.danger:hover { color:var(--p-high); background:rgba(217,48,37,.1); }
+.ctx-menu { position:fixed; background:var(--surface2); border:1px solid var(--border2); border-radius:6px; padding:4px 0; min-width:140px; z-index:1000; box-shadow:0 6px 20px rgba(0,0,0,.4); opacity:0; pointer-events:none; transform:scale(0.95) translateY(-4px); transition:opacity 140ms var(--ease-out), transform 140ms var(--ease-out); }
+.ctx-menu.open { opacity:1; pointer-events:auto; transform:scale(1) translateY(0); }
+.ctx-menu-item { display:flex; align-items:center; gap:8px; padding:7px 14px; font-size:.84rem; color:var(--text-dim); cursor:pointer; transition:background .1s, color .1s; outline:none; opacity:0; animation:none; }
+.ctx-menu.open .ctx-menu-item { animation:rowIn 160ms var(--ease-out) both; }
+.ctx-menu.open .ctx-menu-item:nth-child(1) { animation-delay:0ms; }
+.ctx-menu.open .ctx-menu-item:nth-child(2) { animation-delay:30ms; }
+.ctx-menu.open .ctx-menu-item:nth-child(3) { animation-delay:55ms; }
+.ctx-menu-item:hover, .ctx-menu-item:focus { background:var(--surface); color:var(--text); }
+.ctx-menu-item.danger:hover, .ctx-menu-item.danger:focus { color:var(--p-high); background:rgba(217,48,37,.1); }
 .ctx-menu-icon { font-size:.75rem; opacity:.7; }
 </style>
 </head>
@@ -538,6 +673,7 @@ tr.subtask-row td:nth-child(2)::before {
 
 <!-- TOP BAR -->
 <div class="topbar" oncontextmenu="event.preventDefault()">
+  <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar" aria-expanded="false" aria-controls="appSidebar" onclick="toggleSidebar()">☰</button>
   <div class="logo">Puma<span>Pager</span></div>
   <div class="topbar-spacer"></div>
   <button class="archive-btn" onclick="exportData()">Export ↓</button>
@@ -560,60 +696,63 @@ tr.subtask-row td:nth-child(2)::before {
   </div>
 </div>
 
+<!-- SIDEBAR MOBILE OVERLAY -->
+<div class="sidebar-mobile-overlay" id="sidebarOverlay" onclick="closeSidebarMobile()"></div>
+
 <!-- MAIN -->
 <div class="main">
   <!-- SIDEBAR -->
-  <div class="sidebar" oncontextmenu="event.preventDefault()">
+  <div class="sidebar" id="appSidebar" oncontextmenu="event.preventDefault()">
     <div class="sidebar-label">Views</div>
-    <div class="sidebar-item active" id="sb-all" onclick="clearAllFilters()">
-      <div class="sidebar-dot" style="background:#5b8af0"></div>All Tasks
+    <div class="sidebar-item active" id="sb-all" role="button" tabindex="0" aria-current="page" onclick="clearAllFilters()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();clearAllFilters()}">
+      <div class="sidebar-dot" style="background:var(--accent)"></div>All Tasks
       <span class="sidebar-count" id="cnt-all">—</span>
     </div>
-    <div class="sidebar-item" id="sb-inbox" onclick="toggleGtdFilter('inbox')">
+    <div class="sidebar-item" id="sb-inbox" role="button" tabindex="0" onclick="toggleGtdFilter('inbox')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleGtdFilter('inbox')}">
       <div class="sidebar-dot" style="background:var(--g-inbox)"></div>Inbox
       <span class="sidebar-count" id="cnt-inbox">—</span>
     </div>
-    <div class="sidebar-item" id="sb-today" onclick="toggleGtdFilter('today')">
+    <div class="sidebar-item" id="sb-today" role="button" tabindex="0" onclick="toggleGtdFilter('today')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleGtdFilter('today')}">
       <div class="sidebar-dot" style="background:var(--g-today)"></div>Today
       <span class="sidebar-count" id="cnt-today">—</span>
     </div>
-    <div class="sidebar-item" id="sb-soon" onclick="toggleGtdFilter('soon')">
+    <div class="sidebar-item" id="sb-soon" role="button" tabindex="0" onclick="toggleGtdFilter('soon')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleGtdFilter('soon')}">
       <div class="sidebar-dot" style="background:var(--g-soon)"></div>Soon
       <span class="sidebar-count" id="cnt-soon">—</span>
     </div>
-    <div class="sidebar-item" id="sb-waiting" onclick="toggleGtdFilter('waiting')">
+    <div class="sidebar-item" id="sb-waiting" role="button" tabindex="0" onclick="toggleGtdFilter('waiting')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleGtdFilter('waiting')}">
       <div class="sidebar-dot" style="background:var(--g-waiting)"></div>Waiting
       <span class="sidebar-count" id="cnt-waiting">—</span>
     </div>
-    <div class="sidebar-item" id="sb-someday" onclick="toggleGtdFilter('someday')">
+    <div class="sidebar-item" id="sb-someday" role="button" tabindex="0" onclick="toggleGtdFilter('someday')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleGtdFilter('someday')}">
       <div class="sidebar-dot" style="background:var(--g-someday)"></div>Someday
       <span class="sidebar-count" id="cnt-someday">—</span>
     </div>
-    <div class="sidebar-item" id="sb-hold" onclick="toggleGtdFilter('hold')">
+    <div class="sidebar-item" id="sb-hold" role="button" tabindex="0" onclick="toggleGtdFilter('hold')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleGtdFilter('hold')}">
       <div class="sidebar-dot" style="background:var(--g-hold)"></div>On Hold
       <span class="sidebar-count" id="cnt-hold">—</span>
     </div>
-    <div class="sidebar-item" id="sb-archive" onclick="setArchiveView()">
+    <div class="sidebar-item" id="sb-archive" role="button" tabindex="0" onclick="setArchiveView()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setArchiveView()}">
       <div class="sidebar-dot" style="background:var(--text-faint)"></div>Archive
       <span class="sidebar-count" id="cnt-archive">—</span>
     </div>
 
     <div class="sidebar-label" style="margin-top:8px">Priority</div>
-    <div class="sidebar-item" id="sb-high" onclick="togglePriorityFilter('high')">
+    <div class="sidebar-item" id="sb-high" role="button" tabindex="0" onclick="togglePriorityFilter('high')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();togglePriorityFilter('high')}">
       <div class="sidebar-dot" style="background:var(--p-high)"></div>High
       <span class="sidebar-count" id="cnt-high">—</span>
     </div>
-    <div class="sidebar-item" id="sb-medium" onclick="togglePriorityFilter('medium')">
+    <div class="sidebar-item" id="sb-medium" role="button" tabindex="0" onclick="togglePriorityFilter('medium')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();togglePriorityFilter('medium')}">
       <div class="sidebar-dot" style="background:var(--p-med)"></div>Medium
       <span class="sidebar-count" id="cnt-medium">—</span>
     </div>
-    <div class="sidebar-item" id="sb-low" onclick="togglePriorityFilter('low')">
+    <div class="sidebar-item" id="sb-low" role="button" tabindex="0" onclick="togglePriorityFilter('low')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();togglePriorityFilter('low')}">
       <div class="sidebar-dot" style="background:var(--p-low)"></div>Low
       <span class="sidebar-count" id="cnt-low">—</span>
     </div>
 
     <div class="sidebar-label" style="margin-top:8px">Projects</div>
-    <div class="sidebar-item" id="sb-no-project" onclick="toggleProjectFilter('no-project')">
+    <div class="sidebar-item" id="sb-no-project" role="button" tabindex="0" onclick="toggleProjectFilter('no-project')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleProjectFilter('no-project')}">
       <div class="sidebar-dot" style="background:var(--text-faint)"></div>No Project
     </div>
     <div id="sidebarGroups"></div>
@@ -647,9 +786,9 @@ tr.subtask-row td:nth-child(2)::before {
 </div>
 
 <!-- ADD SUBTASK MODAL -->
-<div class="modal-overlay" id="subtaskModal">
+<div class="modal-overlay" id="subtaskModal" role="dialog" aria-modal="true" aria-labelledby="subtaskModalTitle">
   <div class="modal">
-    <h2>Add Subtask</h2>
+    <h2 id="subtaskModalTitle">Add Subtask</h2>
     <p id="subtaskModalDesc"></p>
     <input class="modal-input" id="subtaskNameInput" type="text" placeholder="Subtask name…" maxlength="200"/>
     <div class="modal-btns">
@@ -660,9 +799,9 @@ tr.subtask-row td:nth-child(2)::before {
 </div>
 
 <!-- QUICK NOTE MODAL -->
-<div class="modal-overlay" id="quickNoteModal">
+<div class="modal-overlay" id="quickNoteModal" role="dialog" aria-modal="true" aria-labelledby="quickNoteModalTitle">
   <div class="modal">
-    <h2>Add Note</h2>
+    <h2 id="quickNoteModalTitle">Add Note</h2>
     <p id="quickNoteModalDesc"></p>
     <textarea class="modal-input modal-textarea" id="quickNoteInput" placeholder="Note…" rows="4"></textarea>
     <div class="modal-btns">
@@ -674,51 +813,51 @@ tr.subtask-row td:nth-child(2)::before {
 
 <!-- TASK DETAIL PANEL -->
 <div class="panel-overlay" id="panelOverlay" onclick="closeTaskPanel()" oncontextmenu="event.preventDefault()"></div>
-<div class="task-panel" id="taskPanel" oncontextmenu="event.preventDefault()">
+<div class="task-panel" id="taskPanel" role="dialog" aria-modal="true" aria-label="Task Details" oncontextmenu="event.preventDefault()">
   <div class="panel-head">
     <span class="panel-head-title">Task Details</span>
     <button class="panel-close" onclick="closeTaskPanel()">✕ Close</button>
   </div>
   <div class="panel-body">
     <div class="panel-field">
-      <label class="panel-label">Task Name</label>
+      <label for="panelName" class="panel-label">Task Name</label>
       <input class="panel-input" id="panelName" type="text" placeholder="Task name"/>
     </div>
     <div class="panel-field">
-      <label class="panel-label">GTD</label>
+      <label for="panelGtd" class="panel-label">GTD</label>
       <select class="panel-select" id="panelGtd" onchange="colorPanelSelect(this,'gtd')">
         <option>Inbox</option><option>Today</option><option>Soon</option><option>Waiting</option><option>Someday</option><option>On Hold</option>
       </select>
     </div>
     <div class="panel-field">
-      <label class="panel-label">Status</label>
+      <label for="panelStatus" class="panel-label">Status</label>
       <select class="panel-select" id="panelStatus" onchange="colorPanelSelect(this,'status')">
         <option>Not Started</option><option>In Progress</option><option>Completed</option>
       </select>
     </div>
     <div class="panel-field">
-      <label class="panel-label">Priority</label>
+      <label for="panelPriority" class="panel-label">Priority</label>
       <select class="panel-select" id="panelPriority" onchange="colorPanelSelect(this,'priority')">
         <option value="">—</option>
         <option>CRIT</option><option>High</option><option>Medium</option><option>Low</option><option>Info</option>
       </select>
     </div>
     <div class="panel-field">
-      <label class="panel-label">Project</label>
+      <label for="panelProject" class="panel-label">Project</label>
       <select class="panel-input" id="panelProject">
         <option value="">— No Project —</option>
       </select>
     </div>
     <div class="panel-field">
-      <label class="panel-label">Assignee</label>
+      <label for="panelAssignee" class="panel-label">Assignee</label>
       <input class="panel-input" id="panelAssignee" placeholder="—"/>
     </div>
     <div class="panel-field">
-      <label class="panel-label">Due Date</label>
+      <label for="panelDue" class="panel-label">Due Date</label>
       <input class="panel-input" id="panelDue" type="date"/>
     </div>
     <div class="panel-field">
-      <label class="panel-label">Recurrence</label>
+      <label for="panelRecurrence" class="panel-label">Recurrence</label>
       <select class="panel-input" id="panelRecurrence">
         <option value="">— None —</option>
         <option value="daily">Daily</option>
@@ -728,7 +867,7 @@ tr.subtask-row td:nth-child(2)::before {
       </select>
     </div>
     <div class="panel-field">
-      <label class="panel-label">URL</label>
+      <label for="panelUrl" class="panel-label">URL</label>
       <input class="panel-input" id="panelUrl" type="url" placeholder="https://…" oninput="updateUrlLink()"/>
       <a id="panelUrlLink" href="#" target="_blank" rel="noopener noreferrer"
          style="display:none;font-size:.8rem;color:var(--accent);margin-top:4px;text-decoration:none;align-items:center;gap:4px;">
@@ -736,7 +875,7 @@ tr.subtask-row td:nth-child(2)::before {
       </a>
     </div>
     <div class="panel-field">
-      <label class="panel-label">Description</label>
+      <label for="panelDescription" class="panel-label">Description</label>
       <textarea class="panel-textarea" id="panelDescription" placeholder="Add notes, context, or details…"></textarea>
     </div>
     <div class="panel-field notes-section">
@@ -755,19 +894,19 @@ tr.subtask-row td:nth-child(2)::before {
 </div>
 
 <!-- TOAST -->
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <!-- TASK CONTEXT MENU -->
-<div class="ctx-menu" id="taskCtxMenu" style="display:none">
-  <div class="ctx-menu-item" onclick="ctxAddSubtask()"><span class="ctx-menu-icon">⤵</span> Add Subtask</div>
-  <div class="ctx-menu-item" onclick="ctxQuickNote()"><span class="ctx-menu-icon">✎</span> Add Note</div>
-  <div class="ctx-menu-item danger" onclick="ctxDeleteTask()"><span class="ctx-menu-icon">✕</span> Delete</div>
+<div class="ctx-menu" id="taskCtxMenu" role="menu">
+  <div class="ctx-menu-item" role="menuitem" tabindex="-1" onclick="ctxAddSubtask()" onkeydown="ctxMenuKeydown(event,this)"><span class="ctx-menu-icon" aria-hidden="true">⤵</span> Add Subtask</div>
+  <div class="ctx-menu-item" role="menuitem" tabindex="-1" onclick="ctxQuickNote()" onkeydown="ctxMenuKeydown(event,this)"><span class="ctx-menu-icon" aria-hidden="true">✎</span> Add Note</div>
+  <div class="ctx-menu-item danger" role="menuitem" tabindex="-1" onclick="ctxDeleteTask()" onkeydown="ctxMenuKeydown(event,this)"><span class="ctx-menu-icon" aria-hidden="true">✕</span> Delete</div>
 </div>
 
 <!-- PROJECT CONTEXT MENU -->
-<div class="ctx-menu" id="projCtxMenu" style="display:none">
-  <div class="ctx-menu-item" onclick="ctxRename()"><span class="ctx-menu-icon">✎</span> Rename</div>
-  <div class="ctx-menu-item danger" onclick="ctxDelete()"><span class="ctx-menu-icon">✕</span> Delete</div>
+<div class="ctx-menu" id="projCtxMenu" role="menu">
+  <div class="ctx-menu-item" role="menuitem" tabindex="-1" onclick="ctxRename()" onkeydown="ctxMenuKeydown(event,this)"><span class="ctx-menu-icon" aria-hidden="true">✎</span> Rename</div>
+  <div class="ctx-menu-item danger" role="menuitem" tabindex="-1" onclick="ctxDelete()" onkeydown="ctxMenuKeydown(event,this)"><span class="ctx-menu-icon" aria-hidden="true">✕</span> Delete</div>
 </div>
 
 <script>
@@ -1018,26 +1157,88 @@ let dragTaskGtd     = null;
 const collapsedParents = new Set();
 let filterState = { base: 'all', gtd: null, priority: null, project: null };
 
+// ── FOCUS TRAP ──
+let _focusTrapCleanup = null;
+let _focusTrapPrevEl  = null;
+
+const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+
+function trapFocus(container) {
+  if (_focusTrapCleanup) _focusTrapCleanup();
+  _focusTrapPrevEl = document.activeElement;
+  function handler(e) {
+    if (e.key !== 'Tab') return;
+    const els = [...container.querySelectorAll(FOCUSABLE)].filter(el => !el.closest('[style*="display:none"]') && !el.closest('[style*="display: none"]'));
+    if (!els.length) { e.preventDefault(); return; }
+    const first = els[0], last = els[els.length - 1];
+    if (e.shiftKey) { if (document.activeElement === first) { e.preventDefault(); last.focus(); } }
+    else            { if (document.activeElement === last)  { e.preventDefault(); first.focus(); } }
+  }
+  container.addEventListener('keydown', handler);
+  _focusTrapCleanup = () => container.removeEventListener('keydown', handler);
+}
+
+function releaseFocus() {
+  if (_focusTrapCleanup) { _focusTrapCleanup(); _focusTrapCleanup = null; }
+  if (_focusTrapPrevEl && typeof _focusTrapPrevEl.focus === 'function') {
+    try { _focusTrapPrevEl.focus(); } catch {}
+  }
+  _focusTrapPrevEl = null;
+}
+
+// ── MOTION HELPERS ──
+const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
 // ── TOAST ──
 function toast(msg, duration = 2500) {
   const el = document.getElementById('toast');
   el.textContent = msg;
+  el.classList.remove('hiding');
   el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), duration);
+  clearTimeout(el._toastTimer);
+  el._toastTimer = setTimeout(() => {
+    if (!reducedMotion()) {
+      el.classList.add('hiding');
+      setTimeout(() => el.classList.remove('show', 'hiding'), 210);
+    } else {
+      el.classList.remove('show');
+    }
+  }, duration);
 }
 
 // ── SIDEBAR ──
 function updateSidebarActive() {
-  document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+  document.querySelectorAll('.sidebar-item').forEach(i => {
+    i.classList.remove('active');
+    i.removeAttribute('aria-current');
+  });
   if (filterState.base === 'archive') {
-    document.getElementById('sb-archive')?.classList.add('active');
+    const el = document.getElementById('sb-archive');
+    el?.classList.add('active');
+    el?.setAttribute('aria-current', 'page');
     return;
   }
   const hasFilters = filterState.gtd || filterState.priority || filterState.project;
-  if (!hasFilters) document.getElementById('sb-all')?.classList.add('active');
-  if (filterState.gtd)      document.getElementById(`sb-${filterState.gtd}`)?.classList.add('active');
-  if (filterState.priority) document.getElementById(`sb-${filterState.priority}`)?.classList.add('active');
-  if (filterState.project)  document.getElementById(`sb-${filterState.project}`)?.classList.add('active');
+  if (!hasFilters) {
+    const el = document.getElementById('sb-all');
+    el?.classList.add('active');
+    el?.setAttribute('aria-current', 'page');
+  }
+  if (filterState.gtd) {
+    const el = document.getElementById(`sb-${filterState.gtd}`);
+    el?.classList.add('active');
+    el?.setAttribute('aria-current', 'page');
+  }
+  if (filterState.priority) {
+    const el = document.getElementById(`sb-${filterState.priority}`);
+    el?.classList.add('active');
+    el?.setAttribute('aria-current', 'page');
+  }
+  if (filterState.project) {
+    const el = document.getElementById(`sb-${filterState.project}`);
+    el?.classList.add('active');
+    el?.setAttribute('aria-current', 'page');
+  }
 }
 
 function clearAllFilters() {
@@ -1074,6 +1275,7 @@ function renderSidebarGroups() {
   const el = document.getElementById('sidebarGroups');
   el.innerHTML = [...groups].sort((a, b) => a.position - b.position).map(g => `
     <div class="sidebar-item sidebar-proj-item" id="sb-group-${g.id}"
+         role="button" tabindex="0"
          draggable="true"
          ondragstart="onProjDragStart(event,${g.id})"
          ondragover="onProjDragOver(event,${g.id})"
@@ -1081,8 +1283,9 @@ function renderSidebarGroups() {
          ondrop="onProjDrop(event,${g.id})"
          ondragend="onProjDragEnd(event)"
          onclick="toggleProjectFilter('group-${g.id}')"
+         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleProjectFilter('group-${g.id}')}"
          oncontextmenu="openProjContextMenu(event,${g.id})">
-      <span class="sidebar-proj-handle" onclick="event.stopPropagation()">⠿⠿</span>
+      <span class="sidebar-proj-handle" aria-hidden="true" onclick="event.stopPropagation()">⠿⠿</span>
       <div class="sidebar-dot" style="background:var(--accent);flex-shrink:0"></div>
       <span class="sidebar-proj-name" id="sbpname-${g.id}">${esc(g.name)}</span>
       <span class="sidebar-count">${g.task_count ?? 0}</span>
@@ -1122,7 +1325,16 @@ async function loadCounts() {
                  someday:'someday', hold:'hold', high:'high', medium:'medium', low:'low', archive:'archived' };
   for (const [k, v] of Object.entries(map)) {
     const el = document.getElementById('cnt-' + k);
-    if (el) el.textContent = data[v] ?? 0;
+    if (!el) continue;
+    const newVal = String(data[v] ?? 0);
+    const oldVal = el.textContent;
+    el.textContent = newVal;
+    if (newVal !== oldVal && !reducedMotion()) {
+      el.classList.remove('changed');
+      void el.offsetWidth;
+      el.classList.add('changed');
+      setTimeout(() => el.classList.remove('changed'), 330);
+    }
   }
 }
 
@@ -1141,9 +1353,9 @@ function taskRow(t, depth = 0, hasSubtasks = false) {
 
   let namePrefix = '';
   if (hasSubtasks) {
-    namePrefix = `<span class="expand-toggle" onclick="event.stopPropagation();toggleExpand(${t.id})">${isCollapsed ? '▶' : '▼'}</span>`;
+    namePrefix = `<span class="expand-toggle" role="button" tabindex="0" aria-expanded="${isCollapsed ? 'false' : 'true'}" aria-label="${isCollapsed ? 'Expand subtasks' : 'Collapse subtasks'}" onclick="event.stopPropagation();toggleExpand(${t.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();toggleExpand(${t.id})}">▶</span>`;
   } else if (depth > 0) {
-    namePrefix = `<span class="subtask-indicator">↳</span>`;
+    namePrefix = `<span class="subtask-indicator" aria-hidden="true">↳</span>`;
   }
 
   return `<tr class="task-row ${depthClass} ${done} ${dueClass}" data-id="${t.id}" data-gtd="${gtd}" data-position="${t.position ?? 0}" data-parent="${t.parent_id ?? ''}" data-depth="${depth}"
@@ -1334,7 +1546,16 @@ async function patch(id, data) {
 async function toggleDone(id, doneVal) {
   const data = { done: doneVal, status: doneVal ? 'Completed' : 'Not Started' };
   if (!doneVal && taskCache[id]?.archived) data.archived = 0;
-  await patch(id, data);
+  if (doneVal && !reducedMotion()) {
+    const row = document.querySelector(`tr.task-row[data-id="${id}"]`);
+    if (row) row.classList.add('completing');
+    await DB.updateTask(id, data);
+    loadCounts();
+    if (row) await new Promise(r => setTimeout(r, 230));
+  } else {
+    await DB.updateTask(id, data);
+    loadCounts();
+  }
   loadTasks();
 }
 
@@ -1348,6 +1569,15 @@ async function addTask() {
   if (filterState.priority)                               payload.priority = PRIO_KEY_MAP[filterState.priority];
   if (filterState.project?.startsWith('group-'))         payload.group_id = parseInt(filterState.project.split('-')[1]);
   await DB.createTask(payload);
+  if (!reducedMotion()) {
+    const btn = document.querySelector('.add-btn');
+    if (btn) {
+      btn.classList.remove('submitted');
+      void btn.offsetWidth;
+      btn.classList.add('submitted');
+      setTimeout(() => btn.classList.remove('submitted'), 310);
+    }
+  }
   loadTasks();
 }
 
@@ -1362,6 +1592,15 @@ async function archiveCompleted() {
   if (!data.ok) { toast('❌ Archive failed.'); return; }
   if (data.count === 0) { toast('No completed tasks to archive.'); return; }
   toast(`✅ ${data.count} task${data.count === 1 ? '' : 's'} archived.`);
+  if (!reducedMotion()) {
+    const btn = document.querySelector('button.archive-btn[onclick="archiveCompleted()"]');
+    if (btn) {
+      btn.classList.remove('confirmed');
+      void btn.offsetWidth;
+      btn.classList.add('confirmed');
+      setTimeout(() => btn.classList.remove('confirmed'), 620);
+    }
+  }
   filterState = { base: 'archive', gtd: null, priority: null, project: null };
   updateSidebarActive();
   await loadGroups();
@@ -1435,13 +1674,16 @@ function openProjContextMenu(e, groupId) {
   e.preventDefault(); e.stopPropagation();
   ctxGroupId = groupId;
   const menu = document.getElementById('projCtxMenu');
-  menu.style.display = 'block';
   const x = Math.min(e.clientX, window.innerWidth  - menu.offsetWidth  - 8);
   const y = Math.min(e.clientY, window.innerHeight - menu.offsetHeight - 8);
   menu.style.left = x + 'px'; menu.style.top = y + 'px';
+  menu.style.transformOrigin = `${e.clientX - x}px ${e.clientY - y}px`;
+  menu.classList.add('open');
+  const first = menu.querySelector('[role="menuitem"]');
+  if (first) first.focus();
 }
 function closeProjContextMenu() {
-  document.getElementById('projCtxMenu').style.display = 'none'; ctxGroupId = null;
+  document.getElementById('projCtxMenu').classList.remove('open'); ctxGroupId = null;
 }
 function ctxRename() { const id = ctxGroupId; closeProjContextMenu(); renameSidebarProject(id); }
 function ctxDelete()  { const id = ctxGroupId; closeProjContextMenu(); deleteProject(id); }
@@ -1671,7 +1913,9 @@ function openTaskPanel(task) {
   document.getElementById('noteInput').value = '';
   loadTaskNotes(task.id);
   document.getElementById('panelOverlay').classList.add('open');
-  document.getElementById('taskPanel').classList.add('open');
+  const panel = document.getElementById('taskPanel');
+  panel.classList.add('open');
+  trapFocus(panel);
   document.getElementById('panelName').focus();
 }
 
@@ -1689,7 +1933,9 @@ function updateUrlLink() {
 function closeTaskPanel() {
   document.getElementById('panelOverlay').classList.remove('open');
   document.getElementById('taskPanel').classList.remove('open');
-  activePanelTaskId = null; setKeyboardFocus(null);
+  activePanelTaskId = null;
+  setKeyboardFocus(null);
+  releaseFocus();
 }
 
 async function saveTaskPanel() {
@@ -1721,13 +1967,26 @@ function openTaskContextMenu(e, taskId) {
   e.preventDefault(); e.stopPropagation();
   ctxTaskId = taskId; ctxTaskName = taskCache[taskId]?.name ?? '';
   const menu = document.getElementById('taskCtxMenu');
-  menu.style.display = 'block';
   const x = Math.min(e.clientX, window.innerWidth  - menu.offsetWidth  - 8);
   const y = Math.min(e.clientY, window.innerHeight - menu.offsetHeight - 8);
   menu.style.left = x + 'px'; menu.style.top = y + 'px';
+  menu.style.transformOrigin = `${e.clientX - x}px ${e.clientY - y}px`;
+  menu.classList.add('open');
+  const first = menu.querySelector('[role="menuitem"]');
+  if (first) first.focus();
 }
 function closeTaskContextMenu() {
-  document.getElementById('taskCtxMenu').style.display = 'none'; ctxTaskId = null; ctxTaskName = null;
+  document.getElementById('taskCtxMenu').classList.remove('open'); ctxTaskId = null; ctxTaskName = null;
+}
+
+function ctxMenuKeydown(e, el) {
+  const menu = el.closest('.ctx-menu');
+  const items = [...menu.querySelectorAll('[role="menuitem"]')];
+  const idx   = items.indexOf(el);
+  if (e.key === 'ArrowDown') { e.preventDefault(); items[(idx + 1) % items.length].focus(); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); items[(idx - 1 + items.length) % items.length].focus(); }
+  else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); }
+  else if (e.key === 'Escape') { closeTaskContextMenu(); closeProjContextMenu(); }
 }
 function ctxDeleteTask() { const id = ctxTaskId; closeTaskContextMenu(); deleteTask(id); }
 function ctxAddSubtask() {
@@ -1750,11 +2009,15 @@ function openSubtaskModal(parentId, parentName) {
   document.getElementById('subtaskModalDesc').textContent = `Adding subtask to "${parentName}"`;
   const input = document.getElementById('subtaskNameInput');
   input.value = '';
-  document.getElementById('subtaskModal').classList.add('open');
+  const overlay = document.getElementById('subtaskModal');
+  overlay.classList.add('open');
+  trapFocus(overlay);
   input.focus();
 }
 function closeSubtaskModal() {
-  document.getElementById('subtaskModal').classList.remove('open'); subtaskParentId = null;
+  document.getElementById('subtaskModal').classList.remove('open');
+  subtaskParentId = null;
+  releaseFocus();
 }
 async function confirmAddSubtask() {
   const name       = document.getElementById('subtaskNameInput').value.trim();
@@ -1777,11 +2040,15 @@ function ctxQuickNote() {
   document.getElementById('quickNoteModalDesc').textContent = `"${task.name}"`;
   const input = document.getElementById('quickNoteInput');
   input.value = '';
-  document.getElementById('quickNoteModal').classList.add('open');
+  const overlay = document.getElementById('quickNoteModal');
+  overlay.classList.add('open');
+  trapFocus(overlay);
   input.focus();
 }
 function closeQuickNoteModal() {
-  document.getElementById('quickNoteModal').classList.remove('open'); quickNoteTaskId = null;
+  document.getElementById('quickNoteModal').classList.remove('open');
+  quickNoteTaskId = null;
+  releaseFocus();
 }
 async function confirmQuickNote() {
   const body = document.getElementById('quickNoteInput').value.trim();
@@ -1944,6 +2211,32 @@ function importData(event) {
   };
   reader.readAsText(file);
 }
+
+// ── MOBILE SIDEBAR ──
+function toggleSidebar() {
+  const sidebar = document.getElementById('appSidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+  const btn     = document.getElementById('sidebarToggle');
+  const isOpen  = sidebar.classList.toggle('mobile-open');
+  overlay.classList.toggle('open', isOpen);
+  btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+}
+
+function closeSidebarMobile() {
+  const sidebar = document.getElementById('appSidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+  const btn     = document.getElementById('sidebarToggle');
+  sidebar.classList.remove('mobile-open');
+  overlay.classList.remove('open');
+  btn.setAttribute('aria-expanded', 'false');
+}
+
+// Auto-close sidebar on mobile when a nav item is clicked
+document.getElementById('appSidebar').addEventListener('click', e => {
+  if (window.innerWidth < 768 && e.target.closest('.sidebar-item')) {
+    closeSidebarMobile();
+  }
+});
 
 // ── INIT ──
 loadGroups();
