@@ -976,6 +976,8 @@ const DB = (() => {
 
   const GTD_RANK = { Inbox:0, Today:1, Soon:2, Waiting:3, Someday:4, 'On Hold':5 };
 
+  let _tasksCache = null;
+
   return {
     // ── PROJECTS ──
     getProjects() {
@@ -1011,12 +1013,23 @@ const DB = (() => {
       const tasks  = load(KEY_TASKS);
       save(KEY_GROUPS, groups.filter(g => g.id !== id));
       save(KEY_TASKS,  tasks.map(t => t.group_id === id ? { ...t, group_id: null } : t));
+      _tasksCache = null;
       return Promise.resolve({ ok: true });
     },
 
     // ── TASKS ──
     getTasks(filters = {}) {
-      let result = load(KEY_TASKS).map(hydrate);
+      if (!_tasksCache) {
+        const raw = load(KEY_TASKS).map(hydrate);
+        raw.sort((a, b) => {
+          const ra = GTD_RANK[a.gtd] ?? 5, rb = GTD_RANK[b.gtd] ?? 5;
+          if (ra !== rb) return ra - rb;
+          if ((a.position || 0) !== (b.position || 0)) return (a.position || 0) - (b.position || 0);
+          return (b.created_at || '').localeCompare(a.created_at || '');
+        });
+        _tasksCache = raw;
+      }
+      let result = [..._tasksCache];
 
       if (filters.archived === '1') {
         result = result.filter(t => t.archived === 1);
@@ -1029,12 +1042,6 @@ const DB = (() => {
       if (filters.group_id)  result = result.filter(t => t.group_id === parseInt(filters.group_id));
       if (filters.no_project) result = result.filter(t => !t.group_id);
 
-      result.sort((a, b) => {
-        const ra = GTD_RANK[a.gtd] ?? 5, rb = GTD_RANK[b.gtd] ?? 5;
-        if (ra !== rb) return ra - rb;
-        if ((a.position || 0) !== (b.position || 0)) return (a.position || 0) - (b.position || 0);
-        return (b.created_at || '').localeCompare(a.created_at || '');
-      });
       return Promise.resolve(result);
     },
 
@@ -1066,6 +1073,7 @@ const DB = (() => {
         position: 0, recurrence: '', created_at: nowStr(),
       };
       save(KEY_TASKS, [...tasks, task]);
+      _tasksCache = null;
       return Promise.resolve(hydrate(task));
     },
 
@@ -1084,6 +1092,7 @@ const DB = (() => {
 
       tasks[idx] = task;
       save(KEY_TASKS, tasks);
+      _tasksCache = null;
 
       // Spawn next recurrence when completed
       let recurrenceSpawned = false;
@@ -1100,6 +1109,7 @@ const DB = (() => {
             position: 0, recurrence: task.recurrence, created_at: nowStr(),
           };
           save(KEY_TASKS, [...fresh, clone]);
+          _tasksCache = null;
           recurrenceSpawned = true;
         }
       }
@@ -1109,6 +1119,7 @@ const DB = (() => {
 
     deleteTask(id) {
       save(KEY_TASKS, load(KEY_TASKS).filter(t => t.id !== id));
+      _tasksCache = null;
       return Promise.resolve({ ok: true });
     },
 
@@ -1120,6 +1131,7 @@ const DB = (() => {
         return t;
       });
       save(KEY_TASKS, updated);
+      _tasksCache = null;
       return Promise.resolve({ ok: true, count });
     },
 
@@ -1134,6 +1146,7 @@ const DB = (() => {
           }
         });
         save(KEY_TASKS, tasks);
+        _tasksCache = null;
       }
       if (groupUpdates.length) {
         const groups = load(KEY_GROUPS);
@@ -1168,6 +1181,8 @@ const DB = (() => {
 // APP STATE
 // ══════════════════════════════════════════════════════════════════
 let taskCache       = {};
+let _notesSaveTimer = null;
+let DOM             = {};
 let activePanelTaskId = null;
 let focusedTaskId   = null;
 let groups          = [];
@@ -1228,37 +1243,22 @@ function toast(msg, duration = 2500) {
 
 // ── SIDEBAR ──
 function updateSidebarActive() {
-  document.querySelectorAll('.sidebar-item').forEach(i => {
-    i.classList.remove('active');
-    i.removeAttribute('aria-current');
-  });
+  const activeIds = new Set();
   if (filterState.base === 'archive') {
-    const el = document.getElementById('sb-archive');
-    el?.classList.add('active');
-    el?.setAttribute('aria-current', 'page');
-    return;
+    activeIds.add('sb-archive');
+  } else {
+    const hasFilters = filterState.gtd || filterState.priority || filterState.project;
+    if (!hasFilters)           activeIds.add('sb-all');
+    if (filterState.gtd)       activeIds.add(`sb-${filterState.gtd}`);
+    if (filterState.priority)  activeIds.add(`sb-${filterState.priority}`);
+    if (filterState.project)   activeIds.add(`sb-${filterState.project}`);
   }
-  const hasFilters = filterState.gtd || filterState.priority || filterState.project;
-  if (!hasFilters) {
-    const el = document.getElementById('sb-all');
-    el?.classList.add('active');
-    el?.setAttribute('aria-current', 'page');
-  }
-  if (filterState.gtd) {
-    const el = document.getElementById(`sb-${filterState.gtd}`);
-    el?.classList.add('active');
-    el?.setAttribute('aria-current', 'page');
-  }
-  if (filterState.priority) {
-    const el = document.getElementById(`sb-${filterState.priority}`);
-    el?.classList.add('active');
-    el?.setAttribute('aria-current', 'page');
-  }
-  if (filterState.project) {
-    const el = document.getElementById(`sb-${filterState.project}`);
-    el?.classList.add('active');
-    el?.setAttribute('aria-current', 'page');
-  }
+  document.querySelectorAll('.sidebar-item').forEach(i => {
+    const isActive = activeIds.has(i.id);
+    i.classList.toggle('active', isActive);
+    if (isActive) i.setAttribute('aria-current', 'page');
+    else i.removeAttribute('aria-current');
+  });
 }
 
 function clearAllFilters() {
@@ -1444,7 +1444,7 @@ function hasChildren(taskId) {
 const GTD_ORDER = ['Inbox','Today','Soon','Waiting','Someday','On Hold'];
 
 function renderGrouped(tasks) {
-  const body = document.getElementById('taskBody');
+  const body = DOM.taskBody;
   tasks.forEach(t => taskCache[t.id] = t);
   const { roots, children } = buildTree(tasks);
 
@@ -1957,7 +1957,15 @@ function updateUrlLink() {
   else                        { link.style.display = 'none'; }
 }
 
+function saveDescription() {
+  if (!activePanelTaskId) return;
+  const val = document.getElementById('panelDescription').value;
+  DB.updateTask(activePanelTaskId, { description: val });
+}
+
 function closeTaskPanel() {
+  clearTimeout(_notesSaveTimer);
+  saveDescription();
   document.getElementById('panelOverlay').classList.remove('open');
   document.getElementById('taskPanel').classList.remove('open');
   activePanelTaskId = null;
@@ -2282,6 +2290,17 @@ document.addEventListener('keydown', e => {
 });
 
 // ── INIT ──
+DOM.taskBody = document.getElementById('taskBody');
+
+document.getElementById('panelDescription').addEventListener('input', () => {
+  clearTimeout(_notesSaveTimer);
+  _notesSaveTimer = setTimeout(saveDescription, 400);
+});
+document.getElementById('panelDescription').addEventListener('blur', () => {
+  clearTimeout(_notesSaveTimer);
+  saveDescription();
+});
+
 loadGroups();
 loadTasks();
 console.log('%cPumaPager', 'font-size:28px;font-weight:700;color:#5b8af0;font-family:Syne,sans-serif;letter-spacing:.06em;');
