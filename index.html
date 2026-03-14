@@ -285,6 +285,7 @@
   --s-todo:#e08080; --s-prog:#5ecc94; --s-done:#5b8af0;
   --g-inbox:#e8eaf0; --g-today:#5ecc94; --g-soon:#d4a464;
   --g-waiting:#cf9060; --g-someday:#a880e8; --g-hold:#e08080;
+  --logo-accent: #e07828;
 }
 body { font-family:'IBM Plex Sans',sans-serif; background:var(--bg); color:var(--text); height:100vh; overflow:hidden; display:flex; flex-direction:column; }
 
@@ -292,7 +293,7 @@ body { font-family:'IBM Plex Sans',sans-serif; background:var(--bg); color:var(-
 .topbar { display:flex; align-items:center; gap:16px; padding:0 24px; height:56px; border-bottom:1px solid var(--border); background:var(--surface); position:sticky; top:0; z-index:100; }
 .logo { font-family:'Syne',sans-serif; font-size:1.1rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; white-space:nowrap; cursor:default; transition:letter-spacing 320ms var(--ease-out), opacity 200ms; }
 .logo:hover { letter-spacing:.11em; opacity:.85; }
-.logo span { color:#e07828; }
+.logo span { color:var(--logo-accent); }
 .topbar-spacer { flex:1; }
 .filter-group { display:flex; gap:8px; align-items:center; }
 .filter-label { font-size:.7rem; color:var(--text-dim); letter-spacing:.08em; text-transform:uppercase; white-space:nowrap; }
@@ -324,7 +325,7 @@ select.filter-select:hover, select.filter-select:focus { border-color:var(--acce
 .add-input { flex:1; background:var(--surface2); border:1px solid var(--border2); color:var(--text); font-family:'IBM Plex Sans',sans-serif; font-size:.92rem; padding:9px 14px; border-radius:6px; outline:none; transition:border-color 200ms var(--ease-out), box-shadow 200ms var(--ease-out); }
 .add-input:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(91,138,240,.12); }
 .add-input::placeholder { color:var(--text-faint); }
-.add-btn { background:var(--accent); color:#fff; border:none; border-radius:6px; padding:9px 18px; font-family:'IBM Plex Sans',sans-serif; font-size:.88rem; font-weight:500; cursor:pointer; transition:opacity .15s, transform 100ms var(--ease-out); white-space:nowrap; }
+.add-btn { background:var(--accent); color:#fff; border:none; border-radius:6px; padding:9px 18px; font-family:'IBM Plex Sans',sans-serif; font-size:.88rem; font-weight:500; cursor:pointer; transition:opacity 150ms var(--ease-out), transform 100ms var(--ease-out); white-space:nowrap; }
 .add-btn:hover { opacity:.85; }
 .add-btn:active { transform:scale(.97); }
 @keyframes btnConfirm { 0%{transform:scale(0.96);} 50%{transform:scale(1.03);} 100%{transform:scale(1);} }
@@ -372,9 +373,9 @@ td:first-child { padding-left:24px; }
 .task-name { font-size:.9rem; color:var(--text); padding:4px 6px; border-radius:4px; border:1px solid var(--accent); outline:none; background:var(--surface2); font-family:'IBM Plex Sans',sans-serif; min-width:160px; }
 
 /* Pill selects */
-.pill-select { border:none; border-radius:6px; font-family:'IBM Plex Sans',sans-serif; font-size:.75rem; font-weight:700; padding:5px 10px; cursor:pointer; outline:none; -webkit-appearance:none; appearance:none; text-align:center; transition:filter 120ms var(--ease-out), transform 100ms var(--ease-out); letter-spacing:.02em; color-scheme:dark; will-change:transform; }
+.pill-select { border:none; border-radius:6px; font-family:'IBM Plex Sans',sans-serif; font-size:.75rem; font-weight:700; padding:5px 10px; cursor:pointer; outline:none; -webkit-appearance:none; appearance:none; text-align:center; transition:filter 120ms var(--ease-out), transform 100ms var(--ease-out); letter-spacing:.02em; color-scheme:dark; }
 .pill-select:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
-.pill-select:hover { filter:brightness(1.18); transform:scale(1.05); }
+.pill-select:hover { filter:brightness(1.18); transform:scale(1.05); will-change:transform; }
 .pill-select:active { transform:scale(0.97); filter:brightness(0.95); transition-duration:60ms; }
 .pill-select option { background:var(--surface2); color:var(--text); font-weight:400; }
 .priority-blank    { background:rgba(232,234,240,.18); color:transparent; border:1px solid rgba(232,234,240,.35); min-width:34px; }
@@ -406,7 +407,7 @@ td:first-child { padding-left:24px; }
 /* Archive button */
 .archive-btn { font-size:.78rem; color:var(--text-dim); background:var(--surface2); border:1px solid var(--border2); padding:5px 12px; border-radius:6px; cursor:pointer; font-family:'IBM Plex Sans',sans-serif; font-weight:500; transition:border-color .15s, color .15s; white-space:nowrap; }
 .archive-btn:hover { border-color:var(--accent); color:var(--text); }
-@keyframes archiveConfirm { 0%{background:var(--surface2);color:var(--text-dim);border-color:var(--border2);} 30%{background:var(--s-done);color:#0e0f11;border-color:var(--s-done);} 100%{background:var(--surface2);color:var(--text-dim);border-color:var(--border2);} }
+@keyframes archiveConfirm { 0%{background:var(--surface2);color:var(--text-dim);border-color:var(--border2);} 30%{background:var(--s-done);color:var(--bg);border-color:var(--s-done);} 100%{background:var(--surface2);color:var(--text-dim);border-color:var(--border2);} }
 .archive-btn.confirmed { animation:archiveConfirm 600ms var(--ease-out) forwards; }
 
 /* Archive / GTD section rows */
@@ -420,10 +421,6 @@ td:first-child { padding-left:24px; }
 .gtd-section-On-Hold td { background:rgba(200,80,80,.08);   color:#e08080; border-bottom-color:rgba(200,80,80,.25); }
 .gtd-section-row.drop-into td { background:var(--accent-dim); color:var(--accent); border-bottom-color:var(--accent); }
 .project-cell { color:var(--text-dim); font-size:.78rem; max-width:90px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-
-/* Delete */
-.del-btn { background:none; border:none; color:var(--text-faint); font-size:1rem; cursor:pointer; padding:4px 6px; border-radius:4px; transition:color .15s,background .15s; line-height:1; }
-.del-btn:hover { color:var(--p-high); background:rgba(180,80,80,.12); }
 
 /* Empty */
 .empty-row td { text-align:center; padding:60px 0; color:var(--text-faint); font-size:.88rem; }
@@ -461,8 +458,9 @@ td:first-child { padding-left:24px; }
 .panel-foot { padding:18px 24px; border-top:1px solid var(--border); display:flex; gap:10px; justify-content:flex-end; flex-shrink:0; }
 .panel-btn-save { background:var(--accent); color:#fff; border:none; border-radius:6px; padding:10px 24px; font-family:'IBM Plex Sans',sans-serif; font-size:.88rem; font-weight:600; cursor:pointer; transition:opacity .15s; }
 .panel-btn-save:hover { opacity:.85; }
+.panel-btn-save:active, .welcome-start:active { transform:scale(.97); }
 .panel-btn-cancel { background:var(--surface2); color:var(--text-dim); border:1px solid var(--border2); border-radius:6px; padding:10px 16px; font-family:'IBM Plex Sans',sans-serif; font-size:.88rem; cursor:pointer; transition:background .15s; }
-.panel-btn-cancel:hover { background:var(--border2); }
+.panel-btn-cancel:hover { background:var(--border); }
 .notes-section { display:flex; flex-direction:column; gap:10px; }
 .notes-section-label { font-size:.68rem; letter-spacing:.1em; text-transform:uppercase; color:var(--text-faint); font-family:'IBM Plex Mono',monospace; }
 .notes-compose { display:flex; flex-direction:column; gap:6px; }
@@ -470,6 +468,7 @@ td:first-child { padding-left:24px; }
 .notes-textarea:focus { border-color:var(--accent); }
 .notes-add-btn { align-self:flex-end; background:var(--surface2); border:1px solid var(--border2); color:var(--text-dim); font-family:'IBM Plex Sans',sans-serif; font-size:.8rem; padding:5px 14px; border-radius:5px; cursor:pointer; transition:border-color .15s, color .15s; }
 .notes-add-btn:hover { color:var(--text); border-color:var(--text-dim); }
+.notes-add-btn:disabled { opacity:.4; cursor:not-allowed; }
 .notes-feed { display:flex; flex-direction:column; gap:8px; }
 .note-entry { border-left:2px solid var(--border2); padding:6px 0 6px 12px; }
 .note-meta { font-size:.72rem; color:var(--text-faint); font-family:'IBM Plex Mono',monospace; margin-bottom:4px; }
@@ -499,7 +498,7 @@ tbody tr { cursor:pointer; }
 .welcome-warning { background:rgba(196,152,72,.12); border:1px solid rgba(196,152,72,.35); border-radius:8px; padding:12px 14px; margin-bottom:22px; display:flex; gap:10px; align-items:flex-start; }
 .welcome-warning-icon { font-size:1rem; line-height:1.4; flex-shrink:0; }
 .welcome-warning-text { font-size:.8rem; line-height:1.55; color:var(--text-dim); }
-.welcome-warning-text strong { color:#d4a464; font-weight:500; }
+.welcome-warning-text strong { color:var(--p-med); font-weight:500; }
 .welcome-tips { list-style:none; padding:0; margin:0 0 24px; display:flex; flex-direction:column; gap:10px; }
 .welcome-tips li { display:flex; gap:10px; align-items:flex-start; font-size:.82rem; color:var(--text-dim); line-height:1.5; }
 .welcome-tip-icon { width:20px; height:20px; border-radius:5px; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:.75rem; flex-shrink:0; margin-top:1px; color:var(--text-faint); }
@@ -657,6 +656,16 @@ tr.subtask-row td:nth-child(2)::before {
 .expand-toggle[aria-expanded="false"] { transform:rotate(0deg); }
 .expand-toggle:hover { background:var(--border2); color:var(--text); }
 .expand-toggle:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+.add-btn:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+.archive-btn:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+.panel-close:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+.panel-btn-save:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+.panel-btn-cancel:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+.notes-add-btn:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+.modal-btn:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+.welcome-start:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+.sidebar-new-group-btn:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+.group-del-btn:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 
 .empty-project-row td { padding:10px 24px; color:var(--text-faint); font-size:.78rem; font-style:italic; border-bottom:1px solid var(--border); transition:background .12s, color .12s; }
 .empty-project-row.drop-into td { background:var(--accent-dim); color:var(--accent); border-color:var(--accent); }
@@ -684,6 +693,7 @@ tr.subtask-row td:nth-child(2)::before {
 .ctx-menu.open .ctx-menu-item:nth-child(3) { animation-delay:55ms; }
 .ctx-menu-item:hover, .ctx-menu-item:focus { background:var(--surface); color:var(--text); }
 .ctx-menu-item.danger:hover, .ctx-menu-item.danger:focus { color:var(--p-high); background:rgba(180,80,80,.12); }
+.ctx-menu-item.danger { border-top:1px solid var(--border); margin-top:4px; padding-top:8px; }
 .ctx-menu-icon { font-size:.75rem; opacity:.7; }
 
 /* TODAY CLEAR */
@@ -693,8 +703,8 @@ tr.subtask-row td:nth-child(2)::before {
 @keyframes todayClearIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
 
 /* SHORTCUTS OVERLAY */
-.shortcuts-overlay { position:fixed; inset:0; background:rgba(10,11,14,.7); backdrop-filter:blur(6px); z-index:1000; display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity 200ms var(--ease-out); }
-.shortcuts-overlay.open { opacity:1; pointer-events:all; }
+.shortcuts-overlay { position:fixed; inset:0; background:rgba(0,0,0,.7); backdrop-filter:blur(6px); z-index:1000; display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity 200ms var(--ease-out); }
+.shortcuts-overlay.open { opacity:1; pointer-events:auto; }
 .shortcuts-panel { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:28px 32px; min-width:340px; box-shadow:0 24px 64px rgba(0,0,0,.5); transform:translateY(12px) scale(.97); transition:transform 240ms var(--ease-out); }
 .shortcuts-overlay.open .shortcuts-panel { transform:translateY(0) scale(1); }
 .shortcuts-title { font-family:'IBM Plex Mono',monospace; font-size:.7rem; letter-spacing:.14em; text-transform:uppercase; color:var(--text-faint); margin-bottom:20px; }
@@ -727,7 +737,7 @@ tr.subtask-row td:nth-child(2)::before {
     </select>
     <select class="filter-select" id="filterGTD" onchange="loadTasks()">
       <option value="">All GTD</option>
-      <option>Inbox</option><option>Today</option><option>Soon</option><option>Waiting</option><option>On Hold</option>
+      <option>Inbox</option><option>Today</option><option>Soon</option><option>Someday</option><option>Waiting</option><option>On Hold</option>
     </select>
   </div>
 </div>
@@ -847,6 +857,30 @@ tr.subtask-row td:nth-child(2)::before {
   </div>
 </div>
 
+<!-- NEW PROJECT MODAL -->
+<div class="modal-overlay" id="newProjectModal" role="dialog" aria-modal="true" aria-labelledby="newProjectTitle">
+  <div class="modal">
+    <h2 id="newProjectTitle">New Project</h2>
+    <input class="modal-input" id="newProjectInput" type="text" placeholder="Project name…" maxlength="100"/>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="closeNewProjectModal()">Cancel</button>
+      <button class="modal-btn confirm" onclick="confirmNewProject()">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE PROJECT MODAL -->
+<div class="modal-overlay" id="deleteProjectModal" role="dialog" aria-modal="true" aria-labelledby="deleteProjectTitle">
+  <div class="modal">
+    <h2 id="deleteProjectTitle">Delete Project</h2>
+    <p id="deleteProjectMsg">Delete this project? Tasks will be kept but unassigned.</p>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="closeDeleteProjectModal()">Cancel</button>
+      <button class="modal-btn confirm" style="background:#d42b2b" onclick="confirmDeleteProject()">Delete</button>
+    </div>
+  </div>
+</div>
+
 <!-- TASK DETAIL PANEL -->
 <div class="panel-overlay" id="panelOverlay" onclick="closeTaskPanel()" oncontextmenu="event.preventDefault()"></div>
 <div class="task-panel" id="taskPanel" role="dialog" aria-modal="true" aria-label="Task Details" oncontextmenu="event.preventDefault()">
@@ -880,7 +914,7 @@ tr.subtask-row td:nth-child(2)::before {
     </div>
     <div class="panel-field">
       <label for="panelProject" class="panel-label">Project</label>
-      <select class="panel-input" id="panelProject">
+      <select class="panel-select" id="panelProject">
         <option value="">— No Project —</option>
       </select>
     </div>
@@ -1478,7 +1512,7 @@ function renderGrouped(tasks) {
   if (!useSections) {
     if (tasks.length) {
       body.innerHTML = roots.map(t => renderTask(t, 0, children)).join('');
-    } else if (filterState.gtd === 'gtd-Today') {
+    } else if (filterState.gtd === 'today') {
       body.innerHTML = '<tr class="empty-row today-clear-row"><td colspan="8"><span class="today-clear-icon">✓</span><span class="today-clear-text">Today is clear.</span></td></tr>';
     } else {
       body.innerHTML = '<tr class="empty-row"><td colspan="8">No tasks here — add one above!</td></tr>';
@@ -1651,10 +1685,23 @@ async function archiveCompleted() {
 }
 
 // ── PROJECT CRUD ──
-async function createProject() {
-  const name = prompt('Project name:');
-  if (!name || !name.trim()) return;
-  const group = await DB.createProject({ name: name.trim() });
+function createProject() {
+  openNewProjectModal();
+}
+function openNewProjectModal() {
+  const inp = document.getElementById('newProjectInput');
+  inp.value = '';
+  document.getElementById('newProjectModal').classList.add('open');
+  setTimeout(() => inp.focus(), 60);
+}
+function closeNewProjectModal() {
+  document.getElementById('newProjectModal').classList.remove('open');
+}
+async function confirmNewProject() {
+  const name = document.getElementById('newProjectInput').value.trim();
+  if (!name) return;
+  closeNewProjectModal();
+  const group = await DB.createProject({ name });
   if (group) { toast('✅ Project created!'); await loadGroups(); loadTasks(); }
   else toast('❌ Could not create project.');
 }
@@ -1680,9 +1727,26 @@ function startProjectRename(groupId) {
   });
 }
 
-async function deleteProject(groupId) {
-  if (!confirm('Delete this project? Tasks will move to No Project.')) return;
-  await DB.deleteProject(groupId);
+function deleteProject(groupId) {
+  const nameEl = document.getElementById('sbpname-' + groupId);
+  const groupName = nameEl ? nameEl.textContent : '';
+  openDeleteProjectModal(groupId, groupName);
+}
+let _pendingDeleteGroupId = null;
+function openDeleteProjectModal(groupId, groupName) {
+  _pendingDeleteGroupId = groupId;
+  document.getElementById('deleteProjectMsg').textContent = `Delete "${groupName}"? Tasks will be kept but unassigned.`;
+  document.getElementById('deleteProjectModal').classList.add('open');
+}
+function closeDeleteProjectModal() {
+  document.getElementById('deleteProjectModal').classList.remove('open');
+  _pendingDeleteGroupId = null;
+}
+async function confirmDeleteProject() {
+  if (!_pendingDeleteGroupId) return;
+  const id = _pendingDeleteGroupId;
+  closeDeleteProjectModal();
+  await DB.deleteProject(id);
   toast('✅ Project deleted.'); await loadGroups(); loadTasks();
 }
 
@@ -2113,6 +2177,7 @@ document.getElementById('subtaskModal').addEventListener('click',   e => { if (e
 document.getElementById('quickNoteModal').addEventListener('click', e => { if (e.target===e.currentTarget) closeQuickNoteModal(); });
 document.getElementById('subtaskNameInput').addEventListener('keydown', e => { if (e.key==='Enter') confirmAddSubtask(); });
 document.getElementById('quickNoteInput').addEventListener('keydown',   e => { if (e.key==='Enter' && (e.ctrlKey||e.metaKey)) confirmQuickNote(); });
+document.getElementById('newProjectInput').addEventListener('keydown',  e => { if (e.key==='Enter') confirmNewProject(); });
 
 // ── TASK NOTES ──
 async function loadTaskNotes(taskId) {
@@ -2290,7 +2355,7 @@ document.getElementById('appSidebar').addEventListener('click', e => {
 });
 
 // ── SHORTCUTS OVERLAY ──
-function openShortcuts() { document.getElementById('shortcutsOverlay').classList.add('open'); }
+function openShortcuts() { const el = document.getElementById('shortcutsOverlay'); el.classList.add('open'); if (typeof trapFocus === 'function') trapFocus(el); }
 function closeShortcuts() { document.getElementById('shortcutsOverlay').classList.remove('open'); }
 function dismissWelcome() { localStorage.setItem('pumapager.welcomed','1'); document.getElementById('welcomeOverlay').classList.remove('open'); }
 document.addEventListener('keydown', e => {
@@ -2329,7 +2394,7 @@ console.log('%cBuilt for focus. Runs entirely in your browser.', 'color:#7a7f8e;
 
 <div id="welcomeOverlay" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle">
   <div class="modal welcome-modal">
-    <div class="welcome-logo">PumaPager</div>
+    <div class="welcome-logo" id="welcomeTitle">PumaPager</div>
     <div class="welcome-tagline">A focused GTD task manager — runs entirely in your browser.</div>
     <div class="welcome-warning">
       <span class="welcome-warning-icon">⚠</span>
@@ -2358,9 +2423,9 @@ console.log('%cBuilt for focus. Runs entirely in your browser.', 'color:#7a7f8e;
   </div>
 </div>
 
-<div id="shortcutsOverlay" class="shortcuts-overlay" onclick="closeShortcuts()">
+<div id="shortcutsOverlay" class="shortcuts-overlay" role="dialog" aria-modal="true" aria-labelledby="shortcutsTitle" onclick="closeShortcuts()">
   <div class="shortcuts-panel" onclick="event.stopPropagation()">
-    <div class="shortcuts-title">Keyboard Shortcuts</div>
+    <div class="shortcuts-title" id="shortcutsTitle">Keyboard Shortcuts</div>
     <div class="shortcuts-grid">
       <kbd>j</kbd> <span>Next task</span>
       <kbd>k</kbd> <span>Previous task</span>
