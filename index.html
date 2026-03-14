@@ -492,6 +492,22 @@ tbody tr { cursor:pointer; }
 .modal-input:focus { border-color:var(--accent); }
 .modal-textarea { resize:vertical; min-height:90px; line-height:1.5; }
 
+/* ── WELCOME MODAL ─────────────────────────────────── */
+.welcome-modal { width:460px; max-width:calc(100vw - 40px); }
+.welcome-logo { font-family:'Syne',sans-serif; font-size:1.5rem; font-weight:700; color:var(--accent); letter-spacing:.06em; margin-bottom:4px; }
+.welcome-tagline { font-size:.82rem; color:var(--text-faint); margin-bottom:22px; }
+.welcome-warning { background:rgba(196,152,72,.12); border:1px solid rgba(196,152,72,.35); border-radius:8px; padding:12px 14px; margin-bottom:22px; display:flex; gap:10px; align-items:flex-start; }
+.welcome-warning-icon { font-size:1rem; line-height:1.4; flex-shrink:0; }
+.welcome-warning-text { font-size:.8rem; line-height:1.55; color:var(--text-dim); }
+.welcome-warning-text strong { color:#d4a464; font-weight:500; }
+.welcome-tips { list-style:none; padding:0; margin:0 0 24px; display:flex; flex-direction:column; gap:10px; }
+.welcome-tips li { display:flex; gap:10px; align-items:flex-start; font-size:.82rem; color:var(--text-dim); line-height:1.5; }
+.welcome-tip-icon { width:20px; height:20px; border-radius:5px; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:.75rem; flex-shrink:0; margin-top:1px; color:var(--text-faint); }
+.welcome-footer { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.welcome-footer-hint { font-size:.75rem; color:var(--text-faint); }
+.welcome-start { padding:9px 22px; background:var(--accent); color:#fff; border:none; border-radius:6px; font-family:'IBM Plex Sans',sans-serif; font-size:.9rem; font-weight:500; cursor:pointer; transition:opacity 120ms; }
+.welcome-start:hover { opacity:.85; }
+
 ::-webkit-scrollbar { width:6px; height:6px; }
 ::-webkit-scrollbar-track { background:transparent; }
 ::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px; }
@@ -2276,6 +2292,7 @@ document.getElementById('appSidebar').addEventListener('click', e => {
 // ── SHORTCUTS OVERLAY ──
 function openShortcuts() { document.getElementById('shortcutsOverlay').classList.add('open'); }
 function closeShortcuts() { document.getElementById('shortcutsOverlay').classList.remove('open'); }
+function dismissWelcome() { localStorage.setItem('pumapager.welcomed','1'); document.getElementById('welcomeOverlay').classList.remove('open'); }
 document.addEventListener('keydown', e => {
   if (document.getElementById('shortcutsOverlay').classList.contains('open')) {
     if (e.key === 'Escape' || e.key === '?') { e.preventDefault(); closeShortcuts(); }
@@ -2303,9 +2320,43 @@ document.getElementById('panelDescription').addEventListener('blur', () => {
 
 loadGroups();
 loadTasks();
+if (!localStorage.getItem('pumapager.welcomed')) {
+  document.getElementById('welcomeOverlay').classList.add('open');
+}
 console.log('%cPumaPager', 'font-size:28px;font-weight:700;color:#5b8af0;font-family:Syne,sans-serif;letter-spacing:.06em;');
 console.log('%cBuilt for focus. Runs entirely in your browser.', 'color:#7a7f8e;font-size:12px;');
 </script>
+
+<div id="welcomeOverlay" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle">
+  <div class="modal welcome-modal">
+    <div class="welcome-logo">PumaPager</div>
+    <div class="welcome-tagline">A focused GTD task manager — runs entirely in your browser.</div>
+    <div class="welcome-warning">
+      <span class="welcome-warning-icon">⚠</span>
+      <div class="welcome-warning-text">
+        <strong>Your data lives in your browser only.</strong> Clearing browser storage, switching browsers, or using private/incognito mode will permanently erase all your tasks. Use <strong>Export</strong> in the toolbar to back up your data regularly.
+      </div>
+    </div>
+    <ul class="welcome-tips">
+      <li>
+        <span class="welcome-tip-icon">→</span>
+        <span>Capture everything to <strong style="color:var(--text)">Inbox</strong>, then triage using GTD buckets: Today, Soon, Waiting, Someday.</span>
+      </li>
+      <li>
+        <span class="welcome-tip-icon">⊞</span>
+        <span>Organize tasks into <strong style="color:var(--text)">Projects</strong> via the sidebar. Subtasks nest inside any task.</span>
+      </li>
+      <li>
+        <span class="welcome-tip-icon">?</span>
+        <span>Press <kbd style="background:var(--surface2);border:1px solid var(--border2);border-radius:4px;padding:1px 5px;font-size:.75rem">?</kbd> at any time to see all keyboard shortcuts.</span>
+      </li>
+    </ul>
+    <div class="welcome-footer">
+      <span class="welcome-footer-hint">Won't show again after this.</span>
+      <button class="welcome-start" onclick="dismissWelcome()">Get Started</button>
+    </div>
+  </div>
+</div>
 
 <div id="shortcutsOverlay" class="shortcuts-overlay" onclick="closeShortcuts()">
   <div class="shortcuts-panel" onclick="event.stopPropagation()">
