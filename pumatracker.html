@@ -507,6 +507,7 @@ tbody tr { cursor:pointer; }
 .welcome-start { padding:9px 22px; background:var(--accent); color:#fff; border:none; border-radius:6px; font-family:'IBM Plex Sans',sans-serif; font-size:.9rem; font-weight:500; cursor:pointer; transition:opacity 120ms; }
 .welcome-start:hover { opacity:.85; }
 
+
 ::-webkit-scrollbar { width:6px; height:6px; }
 ::-webkit-scrollbar-track { background:transparent; }
 ::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px; }
@@ -720,7 +721,7 @@ tr.subtask-row td:nth-child(2)::before {
 <!-- TOP BAR -->
 <div class="topbar" oncontextmenu="event.preventDefault()">
   <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar" aria-expanded="false" aria-controls="appSidebar" onclick="toggleSidebar()">☰</button>
-  <div class="logo">Puma<span>Pager</span></div>
+  <div class="logo">Puma<span>Tracker</span></div>
   <div class="topbar-spacer"></div>
   <button class="archive-btn" onclick="exportData()">Export ↓</button>
   <label class="archive-btn" style="cursor:pointer">Import ↑<input type="file" accept=".json" style="display:none" onchange="importData(event)"/></label>
@@ -2422,6 +2423,7 @@ console.log('%cBuilt for focus. Runs entirely in your browser.', 'color:#7a7f8e;
     </div>
   </div>
 </div>
+
 
 <div id="shortcutsOverlay" class="shortcuts-overlay" role="dialog" aria-modal="true" aria-labelledby="shortcutsTitle" onclick="closeShortcuts()">
   <div class="shortcuts-panel" onclick="event.stopPropagation()">
