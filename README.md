@@ -1,4 +1,4 @@
-# PumaPager
+# PumaTracker
 
 A single-user, offline-first task manager built on [GTD](https://gettingthingsdone.com/) principles. Runs entirely in the browser with no server, no account, and no internet connection required.
 
@@ -76,9 +76,9 @@ All data is stored in your browser's **localStorage** under three keys:
 
 | Key | Contents |
 |-----|----------|
-| `pumapager.tasks` | All tasks and subtasks |
-| `pumapager.groups` | Projects |
-| `pumapager.notes` | Per-task notes |
+| `pumatracker.tasks` | All tasks and subtasks |
+| `pumatracker.groups` | Projects |
+| `pumatracker.notes` | Per-task notes |
 
 ### What this means
 - **Data is local to your browser.** Opening `index.html` from a different browser, device, or file path will show an empty app.
@@ -96,9 +96,9 @@ A `demo.json` file is included with sample tasks covering all GTD views, priorit
 
 ```js
 fetch('demo.json').then(r=>r.json()).then(d=>{
-  localStorage.setItem('pumapager.tasks',  JSON.stringify(d.tasks));
-  localStorage.setItem('pumapager.groups', JSON.stringify(d.groups));
-  localStorage.setItem('pumapager.notes',  JSON.stringify(d.notes));
+  localStorage.setItem('pumatracker.tasks',  JSON.stringify(d.tasks));
+  localStorage.setItem('pumatracker.groups', JSON.stringify(d.groups));
+  localStorage.setItem('pumatracker.notes',  JSON.stringify(d.notes));
   location.reload();
 });
 ```

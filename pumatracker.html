@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; font-src data:; connect-src 'self'; object-src 'none'; base-uri 'self';">
-<title>PumaPager</title>
+<title>PumaTracker</title>
 <style>
 /* cyrillic-ext */
 @font-face {
@@ -984,9 +984,9 @@ tr.subtask-row td:nth-child(2)::before {
 // LOCAL STORAGE DATA LAYER
 // ══════════════════════════════════════════════════════════════════
 const DB = (() => {
-  const KEY_TASKS  = 'pumapager.tasks';
-  const KEY_GROUPS = 'pumapager.groups';
-  const KEY_NOTES  = 'pumapager.notes';
+  const KEY_TASKS  = 'pumatracker.tasks';
+  const KEY_GROUPS = 'pumatracker.groups';
+  const KEY_NOTES  = 'pumatracker.notes';
 
   function load(key) {
     try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch { return []; }
@@ -2251,14 +2251,14 @@ function exportData() {
   const data = {
     version: 1,
     exported: new Date().toISOString(),
-    tasks:  JSON.parse(localStorage.getItem('pumapager.tasks')  || '[]'),
-    groups: JSON.parse(localStorage.getItem('pumapager.groups') || '[]'),
-    notes:  JSON.parse(localStorage.getItem('pumapager.notes')  || '[]'),
+    tasks:  JSON.parse(localStorage.getItem('pumatracker.tasks')  || '[]'),
+    groups: JSON.parse(localStorage.getItem('pumatracker.groups') || '[]'),
+    notes:  JSON.parse(localStorage.getItem('pumatracker.notes')  || '[]'),
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const a    = document.createElement('a');
   a.href     = URL.createObjectURL(blob);
-  a.download = `pumapager-${new Date().toISOString().slice(0,10)}.json`;
+  a.download = `pumatracker-${new Date().toISOString().slice(0,10)}.json`;
   a.click();
   URL.revokeObjectURL(a.href);
   toast('✅ Data exported.');
@@ -2312,9 +2312,9 @@ function importData(event) {
         throw new Error('Invalid format');
       }
       const data = sanitizeImport(raw);
-      localStorage.setItem('pumapager.tasks',  JSON.stringify(data.tasks));
-      localStorage.setItem('pumapager.groups', JSON.stringify(data.groups));
-      localStorage.setItem('pumapager.notes',  JSON.stringify(data.notes));
+      localStorage.setItem('pumatracker.tasks',  JSON.stringify(data.tasks));
+      localStorage.setItem('pumatracker.groups', JSON.stringify(data.groups));
+      localStorage.setItem('pumatracker.notes',  JSON.stringify(data.notes));
       taskCache = {};
       filterState = { base: 'all', gtd: null, priority: null, project: null };
       loadGroups();
@@ -2357,7 +2357,7 @@ document.getElementById('appSidebar').addEventListener('click', e => {
 // ── SHORTCUTS OVERLAY ──
 function openShortcuts() { const el = document.getElementById('shortcutsOverlay'); el.classList.add('open'); if (typeof trapFocus === 'function') trapFocus(el); }
 function closeShortcuts() { document.getElementById('shortcutsOverlay').classList.remove('open'); }
-function dismissWelcome() { localStorage.setItem('pumapager.welcomed','1'); document.getElementById('welcomeOverlay').classList.remove('open'); }
+function dismissWelcome() { localStorage.setItem('pumatracker.welcomed','1'); document.getElementById('welcomeOverlay').classList.remove('open'); }
 document.addEventListener('keydown', e => {
   if (document.getElementById('shortcutsOverlay').classList.contains('open')) {
     if (e.key === 'Escape' || e.key === '?') { e.preventDefault(); closeShortcuts(); }
@@ -2385,16 +2385,16 @@ document.getElementById('panelDescription').addEventListener('blur', () => {
 
 loadGroups();
 loadTasks();
-if (!localStorage.getItem('pumapager.welcomed')) {
+if (!localStorage.getItem('pumatracker.welcomed')) {
   document.getElementById('welcomeOverlay').classList.add('open');
 }
-console.log('%cPumaPager', 'font-size:28px;font-weight:700;color:#5b8af0;font-family:Syne,sans-serif;letter-spacing:.06em;');
+console.log('%cPumaTracker', 'font-size:28px;font-weight:700;color:#5b8af0;font-family:Syne,sans-serif;letter-spacing:.06em;');
 console.log('%cBuilt for focus. Runs entirely in your browser.', 'color:#7a7f8e;font-size:12px;');
 </script>
 
 <div id="welcomeOverlay" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle">
   <div class="modal welcome-modal">
-    <div class="welcome-logo" id="welcomeTitle">PumaPager</div>
+    <div class="welcome-logo" id="welcomeTitle">PumaTracker</div>
     <div class="welcome-tagline">A focused GTD task manager — runs entirely in your browser.</div>
     <div class="welcome-warning">
       <span class="welcome-warning-icon">⚠</span>
