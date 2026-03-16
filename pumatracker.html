@@ -714,6 +714,7 @@ tr.subtask-row td:nth-child(2)::before {
 .shortcuts-grid span { font-size:.85rem; color:var(--text-dim); }
 .shortcuts-hint { margin-top:20px; font-size:.75rem; color:var(--text-faint); text-align:center; }
 .shortcuts-hint kbd { font-family:'IBM Plex Mono',monospace; font-size:.68rem; background:var(--surface2); border:1px solid var(--border2); border-radius:4px; padding:2px 6px; color:var(--text-faint); }
+
 </style>
 </head>
 <body>
@@ -721,7 +722,7 @@ tr.subtask-row td:nth-child(2)::before {
 <!-- TOP BAR -->
 <div class="topbar" oncontextmenu="event.preventDefault()">
   <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar" aria-expanded="false" aria-controls="appSidebar" onclick="toggleSidebar()">☰</button>
-  <div class="logo">Puma<span>Tracker</span></div>
+  <a class="logo" href="https://greykit.com/projects/" target="_blank" rel="noopener" style="text-decoration:none;color:inherit">Puma<span>Tracker</span></a>
   <div class="topbar-spacer"></div>
   <button class="archive-btn" onclick="exportData()">Export ↓</button>
   <label class="archive-btn" style="cursor:pointer">Import ↑<input type="file" accept=".json" style="display:none" onchange="importData(event)"/></label>
@@ -2359,6 +2360,7 @@ document.getElementById('appSidebar').addEventListener('click', e => {
 function openShortcuts() { const el = document.getElementById('shortcutsOverlay'); el.classList.add('open'); if (typeof trapFocus === 'function') trapFocus(el); }
 function closeShortcuts() { document.getElementById('shortcutsOverlay').classList.remove('open'); }
 function dismissWelcome() { localStorage.setItem('pumatracker.welcomed','1'); document.getElementById('welcomeOverlay').classList.remove('open'); }
+
 document.addEventListener('keydown', e => {
   if (document.getElementById('shortcutsOverlay').classList.contains('open')) {
     if (e.key === 'Escape' || e.key === '?') { e.preventDefault(); closeShortcuts(); }
@@ -2440,5 +2442,6 @@ console.log('%cBuilt for focus. Runs entirely in your browser.', 'color:#7a7f8e;
     <div class="shortcuts-hint">Press <kbd>?</kbd> or <kbd>Esc</kbd> to close</div>
   </div>
 </div>
+
 </body>
 </html>
