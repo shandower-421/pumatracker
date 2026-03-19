@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PumaTracker — Login</title>
+<meta name="theme-color" content="#0e0f11">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%230e0f11'/><text x='4' y='24' font-size='22' font-family='system-ui' font-weight='700' fill='%23e8eaf0'>P</text><text x='16' y='24' font-size='22' font-family='system-ui' font-weight='700' fill='%23e07828'>T</text></svg>">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0e0f11;--surface:#16181c;--surface2:#1e2128;--border:#2a2d35;--text:#e8eaf0;--text-dim:#7a7f8e;--accent:#5b8af0;--accent-dim:#1e2d4a;--danger:#d42b2b;--logo-accent:#e07828}
+html[data-theme="light"]{--bg:#f4f5f7;--surface:#ffffff;--surface2:#eceef2;--border:#d4d7de;--text:#1a1c22;--text-dim:#5a5e6e;--accent:#4a78e0;--accent-dim:#e4eafb;--danger:#c82020;--logo-accent:#c85818}
+body{font-family:'IBM Plex Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center}
+.login-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:40px 36px;width:100%;max-width:380px;box-shadow:0 8px 32px rgba(0,0,0,.25)}
+.logo{font-family:'Syne',system-ui,sans-serif;font-size:1.8rem;font-weight:700;letter-spacing:.06em;text-align:center;margin-bottom:8px}
+.logo span{color:var(--logo-accent)}
+.subtitle{text-align:center;color:var(--text-dim);font-size:.85rem;margin-bottom:28px}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:.8rem;color:var(--text-dim);margin-bottom:5px;font-weight:500}
+.field input{width:100%;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:.9rem;font-family:inherit;outline:none;transition:border-color 150ms}
+.field input:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 12%,transparent)}
+.btn{width:100%;padding:11px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:.9rem;font-weight:500;font-family:inherit;cursor:pointer;transition:opacity 150ms}
+.btn:hover{opacity:.9}
+.btn:active{transform:scale(.98)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.error{color:var(--danger);font-size:.82rem;text-align:center;margin-top:12px;min-height:1.2em}
+.setup-note{color:var(--text-dim);font-size:.78rem;text-align:center;margin-top:16px;line-height:1.5}
+.toggle-mode{color:var(--accent);background:none;border:none;font-size:.82rem;cursor:pointer;font-family:inherit;margin-top:16px;display:block;text-align:center;width:100%}
+.toggle-mode:hover{text-decoration:underline}
+#displayNameField{display:none}
+</style>
+</head>
+<body>
+<div class="login-card">
+  <div class="logo">Puma<span>Tracker</span></div>
+  <div class="subtitle" id="subtitle">Sign in to continue</div>
+
+  <form id="authForm" autocomplete="on">
+    <div class="field">
+      <label for="username">Username</label>
+      <input type="text" id="username" name="username" autocomplete="username" required autofocus>
+    </div>
+    <div class="field" id="displayNameField">
+      <label for="displayName">Display Name</label>
+      <input type="text" id="displayName" name="displayName" autocomplete="name" placeholder="How others see you">
+    </div>
+    <div class="field">
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" autocomplete="current-password" required minlength="4">
+    </div>
+    <button type="submit" class="btn" id="submitBtn">Sign In</button>
+    <div class="error" id="error"></div>
+    <div class="setup-note" id="setupNote"></div>
+    <button type="button" class="toggle-mode" id="toggleMode" style="display:none"></button>
+  </form>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let mode = 'login'; // or 'setup' or 'register'
+
+async function init() {
+  try {
+    const res = await fetch('/api/auth/setup-required');
+    const data = await res.json();
+    if (data.setup_required) {
+      mode = 'setup';
+      $('subtitle').textContent = 'Create your admin account';
+      $('submitBtn').textContent = 'Create Account';
+      $('displayNameField').style.display = 'block';
+      $('setupNote').textContent = 'This is the first account — it will have admin privileges.';
+      $('password').autocomplete = 'new-password';
+    }
+  } catch {
+    $('error').textContent = 'Cannot reach server.';
+  }
+
+  // Check if already logged in
+  try {
+    const me = await fetch('/api/auth/me');
+    if (me.ok) {
+      window.location = '/';
+      return;
+    }
+  } catch {}
+}
+
+$('authForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  $('error').textContent = '';
+  $('submitBtn').disabled = true;
+
+  const username = $('username').value.trim();
+  const password = $('password').value;
+  const display_name = $('displayName').value.trim() || username;
+
+  try {
+    const endpoint = mode === 'login' ? '/api/auth/login' : '/api/auth/register';
+    const body = mode === 'login'
+      ? { username, password }
+      : { username, password, display_name };
+
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify(body),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      $('error').textContent = data.error || 'Something went wrong.';
+      $('submitBtn').disabled = false;
+      return;
+    }
+
+    window.location = '/';
+  } catch {
+    $('error').textContent = 'Network error — is the server running?';
+    $('submitBtn').disabled = false;
+  }
+});
+
+// Apply theme from localStorage
+const theme = localStorage.getItem('pumatracker.theme') || 'dark';
+document.documentElement.dataset.theme = theme;
+
+init();
+</script>
+</body>
+</html>
