@@ -323,6 +323,12 @@ html[data-theme="light"] .pill-select { color-scheme:light; }
 html[data-theme="light"] .priority-CRIT { outline-color:rgba(0,0,0,.2); }
 body { font-family:'IBM Plex Sans',sans-serif; background:var(--bg); color:var(--text); height:100vh; overflow:hidden; display:flex; flex-direction:column; }
 
+/* DEMO BANNER */
+.demo-banner { display:none; background:var(--accent); color:#fff; text-align:center; padding:6px 16px; font-size:.8rem; font-weight:600; letter-spacing:.02em; position:sticky; top:0; z-index:101; }
+.demo-banner a { color:#fff; text-decoration:underline; margin-left:8px; }
+.demo-mode .demo-banner { display:block; }
+.demo-mode .topbar { top:32px; }
+
 /* TOP BAR */
 .topbar { display:flex; align-items:center; gap:16px; padding:0 24px; height:56px; border-bottom:1px solid var(--border); background:var(--surface); position:sticky; top:0; z-index:100; }
 .logo { font-family:'Syne',sans-serif; font-size:1.1rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; white-space:nowrap; cursor:default; transition:letter-spacing 320ms var(--ease-out), opacity 200ms; }
@@ -860,6 +866,12 @@ tr.subtask-row td:nth-child(2)::before {
 <a class="skip-link" href="#taskBody">Skip to tasks</a>
 <h1 class="sr-only">PumaTracker — Task Manager</h1>
 
+<!-- DEMO BANNER -->
+<div class="demo-banner">
+  Demo Mode — changes reset on refresh.
+  <a href="https://github.com/greykit/pumatracker" target="_blank" rel="noopener">Get PumaTracker &rarr;</a>
+</div>
+
 <!-- TOP BAR -->
 <div class="topbar" oncontextmenu="event.preventDefault()">
   <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar" aria-expanded="false" aria-controls="appSidebar" onclick="toggleSidebar()">☰</button>
@@ -1147,6 +1159,50 @@ tr.subtask-row td:nth-child(2)::before {
 
 <script>
 // ══════════════════════════════════════════════════════════════════
+// DEMO MODE
+// ══════════════════════════════════════════════════════════════════
+const DEMO_MODE = true;
+const DEMO_DATA = {
+  'pumatracker.groups': [
+    { "id": 1, "name": "Work",         "position": 1, "updated_at": "2026-03-07T08:00:00.000Z" },
+    { "id": 2, "name": "Personal",     "position": 2, "updated_at": "2026-03-07T08:00:00.000Z" },
+    { "id": 3, "name": "Side Project", "position": 3, "updated_at": "2026-03-07T08:00:00.000Z" }
+  ],
+  'pumatracker.tasks': [
+    {"id":1,"name":"Review Q1 metrics report","status":"In Progress","priority":"High","gtd":"Today","group_id":1,"due":"","done":0,"archived":0,"position":0,"parent_id":null,"recurrence":"","assignee_text":"","url":"","description":"Prepare for the **2pm leadership sync**.\n\n## Focus areas\n- Revenue vs. forecast\n- Churn rate trends\n- Pipeline health by segment\n\n> Check the [dashboard](https://example.com) for latest figures before the meeting.","created_at":"2026-03-07T08:00:00.000Z","updated_at":"2026-03-07T08:00:00.000Z"},
+    {"id":2,"name":"Deploy hotfix to production","status":"In Progress","priority":"CRIT","gtd":"Today","group_id":1,"due":"","done":0,"archived":0,"position":1,"parent_id":null,"recurrence":"","assignee_text":"Devon","url":"https://github.com","description":"**Critical bug** in checkout flow causing payment failures for *~12% of users*.\n\n### Root cause\nRace condition in the `Stripe webhook handler` — duplicate events processed concurrently.\n\n### Steps\n- Fix the race condition with idempotency key\n- Run integration tests\n- Deploy via CI/CD\n\n> Branch: `fix/checkout-payment-bug`","created_at":"2026-03-09T06:30:00.000Z","updated_at":"2026-03-09T06:30:00.000Z"},
+    {"id":3,"name":"Daily standup notes","status":"Not Started","priority":"Low","gtd":"Today","group_id":1,"due":"","done":0,"archived":0,"position":2,"parent_id":null,"recurrence":"daily","assignee_text":"","url":"","description":"Template:\n- What I did yesterday\n- What I'm doing today\n- Any blockers","created_at":"2026-02-01T09:00:00.000Z","updated_at":"2026-02-01T09:00:00.000Z"},
+    {"id":4,"name":"Call dentist to reschedule","status":"Not Started","priority":"Medium","gtd":"Today","group_id":2,"due":"","done":0,"archived":0,"position":3,"parent_id":null,"recurrence":"","assignee_text":"","url":"","description":"Office number: **555-0142**\n\nAsk about *evening availability* — the 3pm slot doesn't work anymore.","created_at":"2026-03-08T18:00:00.000Z","updated_at":"2026-03-08T18:00:00.000Z"},
+    {"id":5,"name":"Research competitors' pricing","status":"Not Started","priority":"","gtd":"Inbox","group_id":1,"due":"","done":0,"archived":0,"position":0,"parent_id":null,"recurrence":"","assignee_text":"","url":"","description":"## Competitors to check\n- Acme Corp — [pricing page](https://example.com)\n- Widget Inc — recently raised prices\n- FooBar — offers a free tier\n\nLook at **annual vs. monthly** pricing and any volume discounts.","created_at":"2026-03-09T07:15:00.000Z","updated_at":"2026-03-09T07:15:00.000Z"},
+    {"id":6,"name":"Buy birthday gift for mom","status":"Not Started","priority":"Medium","gtd":"Inbox","group_id":2,"due":"","done":0,"archived":0,"position":1,"parent_id":null,"recurrence":"","assignee_text":"","url":"","description":"She mentioned wanting:\n- A new *cookbook* (Mediterranean?)\n- Something for the **garden**\n- That candle brand she liked last year","created_at":"2026-03-09T08:10:00.000Z","updated_at":"2026-03-09T08:10:00.000Z"},
+    {"id":7,"name":"Set up CI/CD pipeline","status":"Not Started","priority":"High","gtd":"Inbox","group_id":3,"due":"","done":0,"archived":0,"position":2,"parent_id":null,"recurrence":"","assignee_text":"","url":"https://docs.github.com/en/actions","description":"Use **GitHub Actions** for the pipeline.\n\n### Stages needed\n- `lint` — ESLint + Prettier check\n- `test` — Jest unit + integration\n- `build` — Production bundle\n- `deploy` — Push to staging, then production\n\n```yaml\non:\n  push:\n    branches: [main]\n```\n\nSee the [Actions docs](https://docs.github.com/en/actions) for workflow syntax.","created_at":"2026-03-08T20:00:00.000Z","updated_at":"2026-03-08T20:00:00.000Z"},
+    {"id":8,"name":"Reply to recruiter email","status":"Not Started","priority":"Info","gtd":"Inbox","group_id":null,"due":"","done":0,"archived":0,"position":3,"parent_id":null,"recurrence":"","assignee_text":"","url":"","description":"","created_at":"2026-03-09T09:00:00.000Z","updated_at":"2026-03-09T09:00:00.000Z"},
+    {"id":9,"name":"Write unit tests for auth module","status":"Not Started","priority":"Medium","gtd":"Soon","group_id":1,"due":"","done":0,"archived":0,"position":0,"parent_id":null,"recurrence":"","assignee_text":"","url":"","description":"Cover the following flows:\n- Login (valid + invalid credentials)\n- Password reset (token generation + validation)\n- OAuth callback handling\n\nAim for **>80% coverage** on `src/auth/`.","created_at":"2026-03-06T10:00:00.000Z","updated_at":"2026-03-06T10:00:00.000Z"},
+    {"id":10,"name":"Test login flow","status":"Not Started","priority":"","gtd":"Soon","group_id":1,"due":"","done":0,"archived":0,"position":0,"parent_id":9,"recurrence":"","assignee_text":"","url":"","description":"","created_at":"2026-03-06T10:01:00.000Z","updated_at":"2026-03-06T10:01:00.000Z"},
+    {"id":11,"name":"Test password reset","status":"Not Started","priority":"","gtd":"Soon","group_id":1,"due":"","done":0,"archived":0,"position":1,"parent_id":9,"recurrence":"","assignee_text":"","url":"","description":"","created_at":"2026-03-06T10:02:00.000Z","updated_at":"2026-03-06T10:02:00.000Z"},
+    {"id":12,"name":"Test OAuth integration","status":"Completed","priority":"","gtd":"Soon","group_id":1,"due":"","done":1,"archived":0,"position":2,"parent_id":9,"recurrence":"","assignee_text":"","url":"","description":"","created_at":"2026-03-06T10:03:00.000Z","updated_at":"2026-03-06T10:03:00.000Z"},
+    {"id":13,"name":"Plan weekend hiking trip","status":"Not Started","priority":"Low","gtd":"Soon","group_id":2,"due":"","done":0,"archived":0,"position":1,"parent_id":null,"recurrence":"","assignee_text":"","url":"","description":"## Trail options\n- **Eagle Creek** — 12 mi, moderate, waterfall views\n- **Silver Falls** — 8 mi, easy, good for the group\n- **Mt. Tabor** — 3 mi, easy, close to brunch spots\n\nConfirm with the group by Thursday.","created_at":"2026-03-03T12:00:00.000Z","updated_at":"2026-03-03T12:00:00.000Z"},
+    {"id":14,"name":"Build landing page","status":"In Progress","priority":"High","gtd":"Soon","group_id":3,"due":"","done":0,"archived":0,"position":2,"parent_id":null,"recurrence":"","assignee_text":"Sarah","url":"https://www.figma.com","description":"Use the Figma designs from Sarah.\n\n### Sections\n- **Hero** — headline, subhead, CTA button\n- **Features** — 3-column grid with icons\n- **Social proof** — testimonial carousel\n- **Waitlist signup** — email input + CTA\n\n> Keep it *fast* — target < 2s LCP. No heavy frameworks.","created_at":"2026-03-05T14:00:00.000Z","updated_at":"2026-03-05T14:00:00.000Z"},
+    {"id":15,"name":"Design approval on mockups","status":"Not Started","priority":"High","gtd":"Waiting","group_id":1,"due":"","done":0,"archived":0,"position":0,"parent_id":null,"recurrence":"","assignee_text":"Design Team","url":"","description":"Sent mockups via **Figma link** to the design team.\n\nNeed sign-off on:\n- Color palette update\n- New navigation pattern\n- Mobile layout changes\n\n*Can't proceed with front-end build until approved.*","created_at":"2026-03-05T09:00:00.000Z","updated_at":"2026-03-05T09:00:00.000Z"},
+    {"id":16,"name":"Package delivery from Amazon","status":"Not Started","priority":"Low","gtd":"Waiting","group_id":2,"due":"","done":0,"archived":0,"position":1,"parent_id":null,"recurrence":"","assignee_text":"","url":"","description":"","created_at":"2026-03-08T16:00:00.000Z","updated_at":"2026-03-08T16:00:00.000Z"},
+    {"id":17,"name":"Learn Rust programming language","status":"Not Started","priority":"Low","gtd":"Someday","group_id":3,"due":"","done":0,"archived":0,"position":0,"parent_id":null,"recurrence":"","assignee_text":"","url":"https://doc.rust-lang.org/book/","description":"## Learning plan\n1. Start with [The Rust Book](https://doc.rust-lang.org/book/)\n2. Focus on **ownership model** and **borrowing** first\n3. Build a small CLI tool as practice\n4. Try `tokio` for async\n\n> *Don't rush it* — understanding ownership deeply is more valuable than covering everything superficially.","created_at":"2026-02-15T10:00:00.000Z","updated_at":"2026-02-15T10:00:00.000Z"},
+    {"id":18,"name":"Remodel home office","status":"Not Started","priority":"Medium","gtd":"Someday","group_id":2,"due":"","done":0,"archived":0,"position":1,"parent_id":null,"recurrence":"","assignee_text":"","url":"","description":"### Upgrades\n- **Desk** — standing desk, 60\" wide minimum\n- **Monitor arm** — dual arm mount for 27\" displays\n- **Acoustic panels** — felt panels on the wall behind the desk\n- **Lighting** — bias lighting strip behind monitors\n\n---\n\nBudget: *~$1,500* total","created_at":"2026-01-20T10:00:00.000Z","updated_at":"2026-01-20T10:00:00.000Z"},
+    {"id":19,"name":"Write technical blog post","status":"Not Started","priority":"Low","gtd":"Someday","group_id":null,"due":"","done":0,"archived":0,"position":2,"parent_id":null,"recurrence":"","assignee_text":"","url":"","description":"## Topic ideas\n- **Local-first apps** — why offline matters\n- **SQLite in production** — when it's the right choice\n- **Building with LLM APIs** — practical patterns\n\nPick one and outline before writing. Aim for *~1500 words*.","created_at":"2026-02-28T10:00:00.000Z","updated_at":"2026-02-28T10:00:00.000Z"},
+    {"id":20,"name":"Migrate database to PostgreSQL","status":"Not Started","priority":"High","gtd":"On Hold","group_id":1,"due":"","done":0,"archived":0,"position":0,"parent_id":null,"recurrence":"","assignee_text":"","url":"","description":"**On hold** pending infrastructure budget approval from finance.\n\n### When unblocked\n- Run schema migration scripts in `/scripts/db`\n- Test against staging data\n- Coordinate with DevOps for production cutover\n\n> Estimated downtime: *~15 minutes* with blue-green deploy.","created_at":"2026-02-20T10:00:00.000Z","updated_at":"2026-02-20T10:00:00.000Z"},
+    {"id":21,"name":"Set up development environment","status":"Completed","priority":"","gtd":"Inbox","group_id":3,"due":"","done":1,"archived":1,"position":0,"parent_id":null,"recurrence":"","assignee_text":"","url":"","description":"","created_at":"2026-02-10T10:00:00.000Z","updated_at":"2026-02-10T10:00:00.000Z"},
+    {"id":22,"name":"Create project repository","status":"Completed","priority":"","gtd":"Inbox","group_id":3,"due":"","done":1,"archived":1,"position":1,"parent_id":null,"recurrence":"","assignee_text":"","url":"","description":"","created_at":"2026-02-10T09:00:00.000Z","updated_at":"2026-02-10T09:00:00.000Z"},
+    {"id":23,"name":"Initial project kickoff meeting","status":"Completed","priority":"High","gtd":"Inbox","group_id":1,"due":"","done":1,"archived":1,"position":2,"parent_id":null,"recurrence":"","assignee_text":"","url":"","description":"","created_at":"2026-02-03T10:00:00.000Z","updated_at":"2026-02-03T10:00:00.000Z"}
+  ],
+  'pumatracker.notes': [
+    {"id":1,"task_id":1,"body":"Found discrepancies in the revenue figures — **Q3 numbers** don't match finance's records. Flagging before the presentation.","created_at":"2026-03-08T14:30:00.000Z","updated_at":"2026-03-08T14:30:00.000Z"},
+    {"id":2,"task_id":1,"body":"Data team confirmed it was a reporting pipeline bug. Dashboard figures are now corrected. *Good to present.*","created_at":"2026-03-09T08:45:00.000Z","updated_at":"2026-03-09T08:45:00.000Z"},
+    {"id":3,"task_id":2,"body":"Root cause: race condition in the `Stripe webhook handler`. Fix is in review — CI passing, one approval needed.","created_at":"2026-03-09T07:00:00.000Z","updated_at":"2026-03-09T07:00:00.000Z"},
+    {"id":4,"task_id":15,"body":"Followed up with Jake on Slack. He said the team will have feedback by **Friday EOD**.","created_at":"2026-03-08T11:00:00.000Z","updated_at":"2026-03-08T11:00:00.000Z"}
+  ]
+};
+if (DEMO_MODE) document.documentElement.classList.add('demo-mode');
+
+// ══════════════════════════════════════════════════════════════════
 // LOCAL STORAGE DATA LAYER
 // ══════════════════════════════════════════════════════════════════
 const DB = (() => {
@@ -1154,10 +1210,22 @@ const DB = (() => {
   const KEY_GROUPS = 'pumatracker.groups';
   const KEY_NOTES  = 'pumatracker.notes';
 
+  // In demo mode, use in-memory store seeded from DEMO_DATA.
+  // Refresh resets everything — no localStorage writes for app data.
+  const _mem = DEMO_MODE ? {
+    [KEY_TASKS]:  structuredClone(DEMO_DATA[KEY_TASKS]),
+    [KEY_GROUPS]: structuredClone(DEMO_DATA[KEY_GROUPS]),
+    [KEY_NOTES]:  structuredClone(DEMO_DATA[KEY_NOTES]),
+  } : null;
+
   function load(key) {
+    if (_mem) return structuredClone(_mem[key] || []);
     try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch { return []; }
   }
-  function save(key, data) { localStorage.setItem(key, JSON.stringify(data)); }
+  function save(key, data) {
+    if (_mem) { _mem[key] = data; return; }
+    localStorage.setItem(key, JSON.stringify(data));
+  }
 
   function nextId(items) {
     return (items.reduce((m, x) => Math.max(m, x.id || 0), 0)) + 1;
@@ -2543,6 +2611,7 @@ document.addEventListener('keydown', e => {
 
 // ── EXPORT / IMPORT ──
 function exportData() {
+  if (DEMO_MODE) { toast('Export is disabled in demo mode.'); return; }
   const data = {
     version: 2,
     exported: new Date().toISOString(),
@@ -2671,6 +2740,7 @@ function mergeImport(incoming) {
 }
 
 function importData(event) {
+  if (DEMO_MODE) { toast('Import is disabled in demo mode.'); return; }
   const file = event.target.files[0];
   if (!file) return;
   const reader = new FileReader();
@@ -2800,24 +2870,34 @@ function toggleTheme() {
 applyTheme(localStorage.getItem('pumatracker.theme') || 'dark');
 
 // ── MIGRATION: backfill updated_at ──
-['pumatracker.tasks', 'pumatracker.groups', 'pumatracker.notes'].forEach(key => {
-  const items = JSON.parse(localStorage.getItem(key) || '[]');
-  let changed = false;
-  items.forEach(item => {
-    if (!item.updated_at) { item.updated_at = item.created_at || new Date().toISOString(); changed = true; }
+if (!DEMO_MODE) {
+  ['pumatracker.tasks', 'pumatracker.groups', 'pumatracker.notes'].forEach(key => {
+    const items = JSON.parse(localStorage.getItem(key) || '[]');
+    let changed = false;
+    items.forEach(item => {
+      if (!item.updated_at) { item.updated_at = item.created_at || new Date().toISOString(); changed = true; }
+    });
+    if (changed) localStorage.setItem(key, JSON.stringify(items));
   });
-  if (changed) localStorage.setItem(key, JSON.stringify(items));
-});
 
-// ── DEVICE ID (for sync debugging) ──
-if (!localStorage.getItem('pumatracker.device_id')) {
-  localStorage.setItem('pumatracker.device_id', crypto.randomUUID().slice(0, 8));
+  // ── DEVICE ID (for sync debugging) ──
+  if (!localStorage.getItem('pumatracker.device_id')) {
+    localStorage.setItem('pumatracker.device_id', crypto.randomUUID().slice(0, 8));
+  }
 }
 
 loadGroups();
 loadTasks();
-if (!localStorage.getItem('pumatracker.welcomed')) {
+if (!DEMO_MODE && !localStorage.getItem('pumatracker.welcomed')) {
   document.getElementById('welcomeOverlay').classList.add('open');
+}
+
+// ── DEMO MODE: hide export/import, update UI ──
+if (DEMO_MODE) {
+  document.querySelector('button[onclick="exportData()"]').style.display = 'none';
+  document.querySelector('label.archive-btn:has(input[type="file"])').style.display = 'none';
+  const syncNote = document.querySelector('#deleteTaskModal p[style*="font-size:.75rem"]');
+  if (syncNote) syncNote.textContent = 'In demo mode, all changes reset on page refresh.';
 }
 console.log('%cPumaTracker', 'font-size:28px;font-weight:700;color:#5b8af0;font-family:Syne,sans-serif;letter-spacing:.06em;');
 console.log('%cBuilt for focus. Runs entirely in your browser.', 'color:#7a7f8e;font-size:12px;');
