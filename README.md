@@ -1,20 +1,59 @@
 # PumaTracker
 
-A single-user, offline-first task manager built on [GTD](https://gettingthingsdone.com/) principles. Runs entirely in the browser with no server, no account, and no internet connection required. Zero dependencies.
+A multi-user GTD task manager built on [Getting Things Done](https://gettingthingsdone.com/) principles. Runs as a lightweight Python server on your local network so household members can share a common set of tasks from any browser.
 
-## Usage
+## Prerequisites
 
-Open `index.html` in your browser. That's it.
+- Python 3.9+
+- pip
 
-> Alternatively, serve it locally with `python3 -m http.server 8080` and open `http://localhost:8080/index.html`.
+## Quick Start
 
-On first launch, a welcome screen explains the basics and reminds you to export your data regularly.
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Start the server
+python3 server.py
+```
+
+The server starts on `http://0.0.0.0:5001` by default. Open it from any device on your LAN at `http://<your-ip>:5001`.
+
+On first launch you'll be prompted to create an admin account. The admin can then create accounts for other household members from the Admin tab.
+
+### Configuration
+
+| Environment variable | Default | Purpose |
+|---------------------|---------|---------|
+| `PORT` | `5001` | Server port |
+| `PUMATRACKER_SECRET` | auto-generated | Session signing key (persisted to `data/.secret_key` if not set) |
+| `FLASK_DEBUG` | off | Set to `1` for development mode |
+
+### Demo Data
+
+A `demo.json` file is included with sample tasks. To load it, use the **Import** button in the app's help menu (click **?** in the topbar).
 
 ---
 
 ## Features
 
+### Multi-User
+
+- Shared task data — all users see the same projects and tasks
+- Per-user comments with author attribution
+- Admin role for user management (first account is automatically admin)
+- Session-based auth with HttpOnly cookies (30-day lifetime)
+
+### Admin Panel
+
+Accessible from the **?** menu (Admin tab, visible to admins only):
+
+- **User management** — create, promote/demote, and remove users
+- **Backups** — create, restore, and delete SQLite backups
+- Automatic rotating backups every 6 hours (keeps last 10)
+
 ### GTD Views
+
 Tasks are organized into seven GTD buckets, accessible from the sidebar:
 
 | View | Purpose |
@@ -65,12 +104,13 @@ Comments also render markdown automatically.
 - **Search** — type `/query` in the input bar for instant text search
 
 ### Dark / Light Theme
-Click the **sun/moon toggle** in the topbar to switch between dark and light themes. Your preference is saved to localStorage and persists across sessions.
+Click the **sun/moon toggle** in the topbar to switch between dark and light themes. Your preference persists across sessions.
 
-### Data
+### Data Management
 - **Export** — downloads a dated JSON backup of all tasks, projects, and comments
 - **Import** — restores data from a previously exported JSON file (with confirmation prompt)
 - **Archive** — moves all completed tasks to the Archive view
+- **Password change** — each user can change their own password from the Your Data tab
 
 ---
 
@@ -116,51 +156,36 @@ Press **`?`** anywhere in the app (when not typing) to open the shortcuts refere
 
 ---
 
-## Data Handling
+## Data Storage
 
-All data is stored in your browser's **localStorage** under these keys:
+All data is stored in a SQLite database at `data/pumatracker.db`. The `data/` directory is gitignored and contains:
 
-| Key | Contents |
-|-----|----------|
-| `pumatracker.tasks` | All tasks and subtasks |
-| `pumatracker.groups` | Projects |
-| `pumatracker.notes` | Per-task comments |
-| `pumatracker.theme` | Dark/light preference |
-| `pumatracker.welcomed` | First-run flag |
+| Path | Contents |
+|------|----------|
+| `data/pumatracker.db` | SQLite database (tasks, projects, comments, users, sessions) |
+| `data/backups/` | Rotating SQLite backup files |
+| `data/.secret_key` | Auto-generated session signing key |
 
-### What this means
-- **Data is local to your browser.** Opening the file from a different browser or device will show an empty app.
-- **Clearing browser data will erase your tasks.** Use Export regularly to back up your data.
-- **Incognito/private mode does not persist data** across sessions.
-- **The file itself contains no data.** The HTML file is just the app; your data lives separately in localStorage.
+### Backups
 
-### Recommended workflow
-1. Use **Export** periodically to save a dated JSON backup.
-2. To move to a new browser or device, Export on the old one and Import on the new one.
-3. To reset to a clean state, Import a file with empty arrays or clear localStorage manually.
-
-### Demo data
-A `demo.json` file is included with sample tasks covering all GTD views, priorities, statuses, subtasks, and recurrence. To load it, open the browser console and run:
-
-```js
-fetch('demo.json').then(r=>r.json()).then(d=>{
-  localStorage.setItem('pumatracker.tasks',  JSON.stringify(d.tasks));
-  localStorage.setItem('pumatracker.groups', JSON.stringify(d.groups));
-  localStorage.setItem('pumatracker.notes',  JSON.stringify(d.notes));
-  location.reload();
-});
-```
-
-> This requires the file to be served (e.g. via `python3 -m http.server`), not opened directly as `file://`.
+- Automatic backup on server startup
+- Scheduled backups every 6 hours (configurable in `config.py`)
+- Keeps the 10 most recent backups (oldest are rotated out)
+- Admins can create, restore, and delete backups from the Admin tab
+- Restoring a backup creates a safety backup first
 
 ---
 
 ## Security
 
-- **Content Security Policy** — strict CSP header blocks external scripts, styles, and connections
+- **Session auth** — HttpOnly, SameSite=Lax cookies; no tokens in localStorage
+- **Password hashing** — werkzeug pbkdf2:sha256
+- **Import sanitization** — field whitelists, type coercion, and length limits
+- **Path traversal prevention** — backup filenames validated and realpath-checked
 - **XSS protection** — all user content is HTML-escaped before rendering
-- **Import sanitization** — imported data is validated with field whitelists, type coercion, and length limits
-- **No external requests** — the app makes zero network calls (fonts are embedded as base64)
+- **No hardcoded secrets** — session key auto-generated and persisted to disk
+- **Session cleanup** — expired sessions pruned on each request
+- **Session invalidation** — admin password resets invalidate all user sessions
 
 ## License
 
