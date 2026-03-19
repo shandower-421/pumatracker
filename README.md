@@ -4,9 +4,9 @@ A single-user, offline-first task manager built on [GTD](https://gettingthingsdo
 
 ## Usage
 
-Open `pumatracker.html` in your browser. That's it.
+Open `index.html` in your browser. That's it.
 
-> Alternatively, serve it locally with `python3 -m http.server 8080` and open `http://localhost:8080/pumatracker.html`.
+> Alternatively, serve it locally with `python3 -m http.server 8080` and open `http://localhost:8080/index.html`.
 
 On first launch, a welcome screen explains the basics and reminds you to export your data regularly.
 
