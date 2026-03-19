@@ -36,7 +36,7 @@ Tasks are organized into seven GTD buckets, accessible from the sidebar:
 - **Recurrence** — daily, weekly, monthly, or yearly; spawns the next occurrence on completion
 - **Due dates** — overdue dates highlighted in red with pulsing indicator
 - **Assignee and URL** fields in the task detail panel
-- **Notes** — timestamped log entries per task with markdown support
+- **Comments** — timestamped log entries per task with markdown support
 - **Delete confirmation** — task deletion requires explicit confirmation
 
 ### Live Search
@@ -52,7 +52,7 @@ The task detail panel supports markdown in descriptions with an **Edit/Preview**
 - [Links](`[text](url)`)
 - Horizontal rules (`---`)
 
-Notes also render markdown automatically.
+Comments also render markdown automatically.
 
 ### Projects
 - Create, rename, and delete projects from the sidebar
@@ -68,7 +68,7 @@ Notes also render markdown automatically.
 Click the **sun/moon toggle** in the topbar to switch between dark and light themes. Your preference is saved to localStorage and persists across sessions.
 
 ### Data
-- **Export** — downloads a dated JSON backup of all tasks, projects, and notes
+- **Export** — downloads a dated JSON backup of all tasks, projects, and comments
 - **Import** — restores data from a previously exported JSON file (with confirmation prompt)
 - **Archive** — moves all completed tasks to the Archive view
 
@@ -124,7 +124,7 @@ All data is stored in your browser's **localStorage** under these keys:
 |-----|----------|
 | `pumatracker.tasks` | All tasks and subtasks |
 | `pumatracker.groups` | Projects |
-| `pumatracker.notes` | Per-task notes |
+| `pumatracker.notes` | Per-task comments |
 | `pumatracker.theme` | Dark/light preference |
 | `pumatracker.welcomed` | First-run flag |
 

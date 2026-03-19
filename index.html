@@ -319,6 +319,8 @@ html[data-theme="light"] .toast { box-shadow:0 4px 16px rgba(0,0,0,.12); }
 html[data-theme="light"] .ctx-menu { box-shadow:0 4px 16px rgba(0,0,0,.12); }
 html[data-theme="light"] .panel-input[type=date] { color-scheme:light; }
 html[data-theme="light"] .date-input { color-scheme:light; }
+html[data-theme="light"] .pill-select { color-scheme:light; }
+html[data-theme="light"] .priority-CRIT { outline-color:rgba(0,0,0,.2); }
 body { font-family:'IBM Plex Sans',sans-serif; background:var(--bg); color:var(--text); height:100vh; overflow:hidden; display:flex; flex-direction:column; }
 
 /* TOP BAR */
@@ -356,7 +358,7 @@ select.filter-select:hover, select.filter-select:focus { border-color:var(--acce
 /* ADD BAR */
 .add-bar { display:flex; gap:10px; align-items:center; padding:14px 24px; border-bottom:1px solid var(--border); background:var(--surface); }
 .add-input { flex:1; background:var(--surface2); border:1px solid var(--border2); color:var(--text); font-family:'IBM Plex Sans',sans-serif; font-size:.92rem; padding:9px 14px; border-radius:6px; outline:none; transition:border-color 200ms var(--ease-out), box-shadow 200ms var(--ease-out); }
-.add-input:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(91,138,240,.12); }
+.add-input:focus { border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent); }
 .add-input::placeholder { color:var(--text-faint); }
 .add-input.searching { border-color:var(--accent); background:var(--accent-dim); }
 .theme-toggle { font-size:1rem; line-height:1; padding:5px 8px !important; }
@@ -415,7 +417,7 @@ td:first-child { padding-left:24px; }
 .pill-select:hover { filter:brightness(1.18); transform:scale(1.05); will-change:transform; }
 .pill-select:active { transform:scale(0.97); filter:brightness(0.95); transition-duration:60ms; }
 .pill-select option { background:var(--surface2); color:var(--text); font-weight:400; }
-.priority-blank    { background:rgba(232,234,240,.18); color:transparent; border:1px solid rgba(232,234,240,.35); min-width:34px; }
+.priority-blank    { background:color-mix(in srgb, var(--text) 18%, transparent); color:transparent; border:1px solid color-mix(in srgb, var(--text) 35%, transparent); min-width:34px; }
 .priority-CRIT { background:var(--danger); color:#fff; border:1px solid var(--danger); outline:2px solid rgba(255,255,255,.35); outline-offset:-3px; font-weight:800; letter-spacing:.06em; }
 .priority-High     { background:color-mix(in srgb, var(--p-high) 18%, transparent); color:var(--p-high); border:1px solid color-mix(in srgb, var(--p-high) 35%, transparent); }
 .priority-Medium   { background:color-mix(in srgb, var(--p-med) 18%, transparent); color:var(--p-med); border:1px solid color-mix(in srgb, var(--p-med) 35%, transparent); }
@@ -991,12 +993,12 @@ tr.subtask-row td:nth-child(2)::before {
 <!-- QUICK NOTE MODAL -->
 <div class="modal-overlay" id="quickNoteModal" role="dialog" aria-modal="true" aria-labelledby="quickNoteModalTitle">
   <div class="modal">
-    <h2 id="quickNoteModalTitle">Add Note</h2>
+    <h2 id="quickNoteModalTitle">Add Comment</h2>
     <p id="quickNoteModalDesc"></p>
-    <textarea class="modal-input modal-textarea" id="quickNoteInput" placeholder="Note…" rows="4"></textarea>
+    <textarea class="modal-input modal-textarea" id="quickNoteInput" placeholder="Comment…" rows="4"></textarea>
     <div class="modal-btns">
       <button class="modal-btn cancel" onclick="closeQuickNoteModal()">Cancel</button>
-      <button class="modal-btn confirm" onclick="confirmQuickNote()">Add Note</button>
+      <button class="modal-btn confirm" onclick="confirmQuickNote()">Add Comment</button>
     </div>
   </div>
 </div>
@@ -1104,19 +1106,19 @@ tr.subtask-row td:nth-child(2)::before {
     <div class="panel-field">
       <div class="desc-header">
         <span class="panel-label">Description</span>
-        <div class="desc-tabs">
-          <button class="desc-tab active" id="descTabEdit" onclick="showDescEdit()">Edit</button>
-          <button class="desc-tab" id="descTabPreview" onclick="showDescPreview()">Preview</button>
+        <div class="desc-tabs" role="tablist">
+          <button class="desc-tab active" id="descTabEdit" role="tab" aria-selected="true" aria-controls="panelDescription" onclick="showDescEdit()">Edit</button>
+          <button class="desc-tab" id="descTabPreview" role="tab" aria-selected="false" aria-controls="descPreview" onclick="showDescPreview()">Preview</button>
         </div>
       </div>
-      <textarea class="panel-textarea" id="panelDescription" placeholder="Add notes, context, or details…"></textarea>
+      <textarea class="panel-textarea" id="panelDescription" placeholder="Add context, details, or markdown…"></textarea>
       <div class="desc-preview" id="descPreview"></div>
     </div>
     <div class="panel-field notes-section">
-      <span class="notes-section-label">Notes</span>
+      <span class="notes-section-label">Comments</span>
       <div class="notes-compose">
-        <textarea class="notes-textarea" id="noteInput" placeholder="Add a note…" rows="2"></textarea>
-        <button class="notes-add-btn" onclick="postTaskNote()">Add Note</button>
+        <textarea class="notes-textarea" id="noteInput" placeholder="Add a comment…" rows="2"></textarea>
+        <button class="notes-add-btn" onclick="postTaskNote()">Add Comment</button>
       </div>
       <div class="notes-feed" id="notesFeed"></div>
     </div>
@@ -1133,7 +1135,7 @@ tr.subtask-row td:nth-child(2)::before {
 <!-- TASK CONTEXT MENU -->
 <div class="ctx-menu" id="taskCtxMenu" role="menu">
   <div class="ctx-menu-item" role="menuitem" tabindex="-1" onclick="ctxAddSubtask()" onkeydown="ctxMenuKeydown(event,this)"><span class="ctx-menu-icon" aria-hidden="true">⤵</span> Add Subtask</div>
-  <div class="ctx-menu-item" role="menuitem" tabindex="-1" onclick="ctxQuickNote()" onkeydown="ctxMenuKeydown(event,this)"><span class="ctx-menu-icon" aria-hidden="true">✎</span> Add Note</div>
+  <div class="ctx-menu-item" role="menuitem" tabindex="-1" onclick="ctxQuickNote()" onkeydown="ctxMenuKeydown(event,this)"><span class="ctx-menu-icon" aria-hidden="true">✎</span> Add Comment</div>
   <div class="ctx-menu-item danger" role="menuitem" tabindex="-1" onclick="ctxDeleteTask()" onkeydown="ctxMenuKeydown(event,this)"><span class="ctx-menu-icon" aria-hidden="true">✕</span> Delete</div>
 </div>
 
@@ -1807,7 +1809,10 @@ function renderMarkdown(raw) {
   html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
   // Links
-  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, text, url) => {
+    if (/^https?:\/\//i.test(url)) return `<a href="${url}" target="_blank" rel="noopener noreferrer">${text}</a>`;
+    return `${text} (${url})`;
+  });
   // Blockquotes
   html = html.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
   // Unordered lists
@@ -1827,7 +1832,9 @@ function showDescEdit() {
   document.getElementById('panelDescription').style.display = '';
   document.getElementById('descPreview').classList.remove('active');
   document.getElementById('descTabEdit').classList.add('active');
+  document.getElementById('descTabEdit').setAttribute('aria-selected', 'true');
   document.getElementById('descTabPreview').classList.remove('active');
+  document.getElementById('descTabPreview').setAttribute('aria-selected', 'false');
 }
 function showDescPreview() {
   const raw = document.getElementById('panelDescription').value;
@@ -1835,7 +1842,9 @@ function showDescPreview() {
   document.getElementById('panelDescription').style.display = 'none';
   document.getElementById('descPreview').classList.add('active');
   document.getElementById('descTabPreview').classList.add('active');
+  document.getElementById('descTabPreview').setAttribute('aria-selected', 'true');
   document.getElementById('descTabEdit').classList.remove('active');
+  document.getElementById('descTabEdit').setAttribute('aria-selected', 'false');
 }
 
 // ── API CALLS ──
@@ -2202,7 +2211,7 @@ function getPanelColors(field, value) {
   const maps = {
     status: { 'Not Started': _muted(.08), 'In Progress': _pill('var(--p-low)',.17), 'Completed': _pill('var(--accent)',.17) },
     gtd: { 'Inbox': _muted(.08), 'Today': _pill('var(--g-today)',.17), 'Soon': _pill('var(--g-soon)',.18), 'Waiting': _pill('var(--g-waiting)',.18), 'Someday': _pill('var(--g-someday)',.17), 'On Hold': _pill('var(--g-hold)',.18) },
-    priority: { '': { ..._muted(.08), color:`color-mix(in srgb, ${_tok('--text')} 35%, transparent)` }, 'CRIT': { bg:'var(--danger)', color:'#fff', border:'1px solid var(--danger)', outline:'2px solid rgba(255,255,255,.35)', outlineOffset:'-3px' }, 'High': _pill('var(--p-high)',.18), 'Medium': _pill('var(--p-med)',.18), 'Low': _pill('var(--p-low)',.17), 'Info': _pill('var(--accent)',.17) },
+    priority: { '': { ..._muted(.08), color:`color-mix(in srgb, ${_tok('--text')} 35%, transparent)` }, 'CRIT': { bg:'var(--danger)', color:'#fff', border:'1px solid var(--danger)', outline: document.documentElement.dataset.theme === 'light' ? '2px solid rgba(0,0,0,.2)' : '2px solid rgba(255,255,255,.35)', outlineOffset:'-3px' }, 'High': _pill('var(--p-high)',.18), 'Medium': _pill('var(--p-med)',.18), 'Low': _pill('var(--p-low)',.17), 'Info': _pill('var(--accent)',.17) },
   };
   // Override text color for info/completed to use --p-info
   const c = (maps[field] || {})[value];
@@ -2344,6 +2353,7 @@ function openDeleteTaskModal(taskId, taskName) {
   const overlay = document.getElementById('deleteTaskModal');
   overlay.classList.add('open');
   trapFocus(overlay);
+  setTimeout(() => overlay.querySelector('.modal-btn.cancel')?.focus(), 60);
 }
 function closeDeleteTaskModal() {
   document.getElementById('deleteTaskModal').classList.remove('open');
@@ -2422,7 +2432,7 @@ async function confirmQuickNote() {
   const body = document.getElementById('quickNoteInput').value.trim();
   if (!body || !quickNoteTaskId) return;
   await DB.addNote(quickNoteTaskId, body);
-  closeQuickNoteModal(); toast('✅ Note added.');
+  closeQuickNoteModal(); toast('✅ Comment added.');
 }
 
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeTaskPanel(); closeSubtaskModal(); closeQuickNoteModal(); } });
@@ -2670,7 +2680,7 @@ function importData(event) {
       if (!Array.isArray(raw.tasks) || !Array.isArray(raw.groups) || !Array.isArray(raw.notes)) {
         throw new Error('Invalid format');
       }
-      if (!confirm(`Merge ${raw.tasks.length} tasks, ${raw.groups.length} projects, and ${raw.notes.length} notes with your existing data?`)) {
+      if (!confirm(`Merge ${raw.tasks.length} tasks, ${raw.groups.length} projects, and ${raw.notes.length} comments with your existing data?`)) {
         event.target.value = '';
         return;
       }
@@ -2737,8 +2747,9 @@ function closeHelp() {
 }
 function showHelpTab(index, btn) {
   document.querySelectorAll('.help-content').forEach((c, i) => c.classList.toggle('active', i === index));
-  document.querySelectorAll('.help-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.help-tab').forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
   btn.classList.add('active');
+  btn.setAttribute('aria-selected', 'true');
 }
 document.addEventListener('keydown', e => {
   if (document.getElementById('helpOverlay').classList.contains('open') && e.key === 'Escape') {
@@ -2867,10 +2878,10 @@ console.log('%cBuilt for focus. Runs entirely in your browser.', 'color:#7a7f8e;
       <span class="help-title" id="helpTitle">PumaTracker Help</span>
       <button class="help-close" onclick="closeHelp()">Close</button>
     </div>
-    <div class="help-tabs">
-      <button class="help-tab active" onclick="showHelpTab(0, this)">Features</button>
-      <button class="help-tab" onclick="showHelpTab(1, this)">Your Data</button>
-      <button class="help-tab" onclick="showHelpTab(2, this)">About</button>
+    <div class="help-tabs" role="tablist">
+      <button class="help-tab active" role="tab" aria-selected="true" aria-controls="helpTab0" onclick="showHelpTab(0, this)">Features</button>
+      <button class="help-tab" role="tab" aria-selected="false" aria-controls="helpTab1" onclick="showHelpTab(1, this)">Your Data</button>
+      <button class="help-tab" role="tab" aria-selected="false" aria-controls="helpTab2" onclick="showHelpTab(2, this)">About</button>
     </div>
     <div class="help-body">
       <!-- TAB 0: FEATURES -->
@@ -2913,7 +2924,7 @@ console.log('%cBuilt for focus. Runs entirely in your browser.', 'color:#7a7f8e;
         </div>
 
         <h3>Backing Up</h3>
-        <p>Use the <strong>Export</strong> button in the toolbar to download a JSON backup of all your tasks, projects, and notes. Do this regularly.</p>
+        <p>Use the <strong>Export</strong> button in the toolbar to download a JSON backup of all your tasks, projects, and comments. Do this regularly.</p>
 
         <h3>Syncing Between Devices</h3>
         <p>PumaTracker supports a simple sync workflow via export and import:</p>
