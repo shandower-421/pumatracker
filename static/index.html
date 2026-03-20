@@ -318,6 +318,7 @@ html[data-theme="light"] .modal { box-shadow:0 16px 48px rgba(0,0,0,.15); }
 html[data-theme="light"] .toast { box-shadow:0 4px 16px rgba(0,0,0,.12); }
 html[data-theme="light"] .ctx-menu { box-shadow:0 4px 16px rgba(0,0,0,.12); }
 html[data-theme="light"] .panel-input[type=date] { color-scheme:light; }
+html[data-theme="light"] .panel-select { color-scheme:light; }
 html[data-theme="light"] .date-input { color-scheme:light; }
 html[data-theme="light"] .pill-select { color-scheme:light; }
 html[data-theme="light"] .priority-CRIT { outline-color:rgba(0,0,0,.2); }
@@ -492,7 +493,8 @@ td:first-child { padding-left:24px; }
 .panel-input, .panel-select, .panel-textarea { background:var(--surface2); border:1px solid var(--border2); color:var(--text); font-family:'IBM Plex Sans',sans-serif; font-size:.9rem; padding:9px 12px; border-radius:6px; outline:none; transition:border-color .15s; width:100%; }
 .panel-input:focus, .panel-select:focus, .panel-textarea:focus { border-color:var(--accent); }
 .panel-textarea { resize:vertical; min-height:120px; line-height:1.5; }
-.panel-select { cursor:pointer; }
+.panel-select { cursor:pointer; color-scheme:dark; }
+.panel-select option { background:var(--surface2); color:var(--text); font-weight:400; }
 .panel-input[type=date] { color-scheme:dark; }
 .panel-foot { padding:18px 24px; border-top:1px solid var(--border); display:flex; gap:10px; justify-content:flex-end; flex-shrink:0; }
 .panel-btn-save { background:var(--accent); color:#fff; border:none; border-radius:6px; padding:10px 24px; font-family:'IBM Plex Sans',sans-serif; font-size:.88rem; font-weight:600; cursor:pointer; transition:opacity .15s; }
@@ -2013,13 +2015,13 @@ function _pill(tokenColor, opacity) {
 }
 function _muted(opacity) {
   const t = _tok('--text');
-  return { bg:`color-mix(in srgb, ${t} ${Math.round(opacity*100)}%, transparent)`, color:`color-mix(in srgb, ${t} 45%, transparent)`, border:`1px solid color-mix(in srgb, ${t} 18%, transparent)` };
+  return { bg:`color-mix(in srgb, ${t} ${Math.round(opacity*100)}%, transparent)`, color:'var(--text-dim)', border:`1px solid color-mix(in srgb, ${t} 18%, transparent)` };
 }
 function getPanelColors(field, value) {
   const maps = {
     status: { 'Not Started': _muted(.08), 'In Progress': _pill('var(--p-low)',.17), 'Completed': _pill('var(--accent)',.17) },
     gtd: { 'Inbox': _muted(.08), 'Today': _pill('var(--g-today)',.17), 'Soon': _pill('var(--g-soon)',.18), 'Waiting': _pill('var(--g-waiting)',.18), 'Someday': _pill('var(--g-someday)',.17), 'On Hold': _pill('var(--g-hold)',.18) },
-    priority: { '': { ..._muted(.08), color:`color-mix(in srgb, ${_tok('--text')} 35%, transparent)` }, 'CRIT': { bg:'var(--danger)', color:'#fff', border:'1px solid var(--danger)', outline: document.documentElement.dataset.theme === 'light' ? '2px solid rgba(0,0,0,.2)' : '2px solid rgba(255,255,255,.35)', outlineOffset:'-3px' }, 'High': _pill('var(--p-high)',.18), 'Medium': _pill('var(--p-med)',.18), 'Low': _pill('var(--p-low)',.17), 'Info': _pill('var(--accent)',.17) },
+    priority: { '': { ..._muted(.08), color:'var(--text-faint)' }, 'CRIT': { bg:'var(--danger)', color:'#fff', border:'1px solid var(--danger)', outline: document.documentElement.dataset.theme === 'light' ? '2px solid rgba(0,0,0,.2)' : '2px solid rgba(255,255,255,.35)', outlineOffset:'-3px' }, 'High': _pill('var(--p-high)',.18), 'Medium': _pill('var(--p-med)',.18), 'Low': _pill('var(--p-low)',.17), 'Info': _pill('var(--accent)',.17) },
   };
   // Override text color for info/completed to use --p-info
   const c = (maps[field] || {})[value];
