@@ -826,7 +826,7 @@ tr.subtask-row td:nth-child(2)::before {
 .help-btn:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 .help-overlay { position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:200; display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity var(--dur-mid) var(--ease-out); }
 .help-overlay.open { opacity:1; pointer-events:auto; }
-.help-panel { background:var(--surface); border:1px solid var(--border2); border-radius:12px; width:520px; max-width:calc(100vw - 32px); max-height:calc(100vh - 64px); display:flex; flex-direction:column; box-shadow:0 24px 64px rgba(0,0,0,.5); transform:scale(.96) translateY(8px); opacity:0; transition:transform var(--dur-mid) var(--ease-out), opacity var(--dur-mid) var(--ease-out); }
+.help-panel { background:var(--surface); border:1px solid var(--border2); border-radius:12px; width:640px; max-width:calc(100vw - 32px); max-height:calc(100vh - 64px); display:flex; flex-direction:column; box-shadow:0 24px 64px rgba(0,0,0,.5); transform:scale(.96) translateY(8px); opacity:0; transition:transform var(--dur-mid) var(--ease-out), opacity var(--dur-mid) var(--ease-out); }
 .help-overlay.open .help-panel { transform:scale(1) translateY(0); opacity:1; }
 .help-header { display:flex; align-items:center; justify-content:space-between; padding:20px 24px 0; }
 .help-title { font-family:'Syne',sans-serif; font-size:1.1rem; font-weight:700; }
@@ -870,8 +870,8 @@ tr.subtask-row td:nth-child(2)::before {
 .admin-btn.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
 .admin-btn.primary:hover { opacity:.85; }
 .admin-btn:disabled { opacity:.4; cursor:not-allowed; }
-.admin-form { display:flex; gap:6px; margin:8px 0; }
-.admin-form input { flex:1; padding:6px 10px; background:var(--surface2); border:1px solid var(--border); border-radius:5px; color:var(--text); font-size:.82rem; font-family:inherit; outline:none; }
+.admin-form { display:flex; flex-wrap:wrap; gap:6px; margin:8px 0; }
+.admin-form input { flex:1 1 120px; min-width:0; padding:6px 10px; background:var(--surface2); border:1px solid var(--border); border-radius:5px; color:var(--text); font-size:.82rem; font-family:inherit; outline:none; }
 .admin-form input:focus { border-color:var(--accent); }
 .admin-msg { font-size:.78rem; margin-top:6px; }
 .admin-msg.ok { color:var(--p-low); }
