@@ -2,6 +2,8 @@
 
 A single-user, offline-first task manager built on [GTD](https://gettingthingsdone.com/) principles. Runs entirely in the browser with no server, no account, and no internet connection required. Zero dependencies.
 
+![PumaTracker — All Tasks view in dark mode](screenshots/all-tasks-dark.png)
+
 ## Usage
 
 Open `index.html` in your browser. That's it.
@@ -27,6 +29,8 @@ Tasks are organized into seven GTD buckets, accessible from the sidebar:
 | **On Hold** | Paused pending external factors |
 | **Archive** | Completed and archived tasks |
 
+![Today view — filtered to tasks committed for today](screenshots/today-view.png)
+
 ### Tasks
 - Add tasks by typing in the input bar and pressing **Enter**
 - **Inline rename** — click a task name to edit it in place
@@ -39,8 +43,12 @@ Tasks are organized into seven GTD buckets, accessible from the sidebar:
 - **Comments** — timestamped log entries per task with markdown support
 - **Delete confirmation** — task deletion requires explicit confirmation
 
+![Task detail panel with fields, description, and comments](screenshots/task-detail.png)
+
 ### Live Search
 Type `/` in the add-task input to enter search mode. The task list live-filters as you type, matching against task names, descriptions, and assignees. Press **Escape** to clear the search and return to normal view.
+
+![Live search filtering tasks matching "deploy"](screenshots/search.png)
 
 ### Markdown Descriptions
 The task detail panel supports markdown in descriptions with an **Edit/Preview** toggle:
@@ -66,6 +74,8 @@ Comments also render markdown automatically.
 
 ### Dark / Light Theme
 Click the **sun/moon toggle** in the topbar to switch between dark and light themes. Your preference is saved to localStorage and persists across sessions.
+
+![Light mode — full dashboard](screenshots/all-tasks-light.png)
 
 ### Data
 - **Export** — downloads a dated JSON backup of all tasks, projects, and comments
